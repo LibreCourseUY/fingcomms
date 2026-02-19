@@ -44,7 +44,9 @@ def get_client_ip(request: Request) -> str:
 
 def verify_admin(request: Request):
     auth_header = request.headers.get("Authorization", "")
+    logger.debug("VERIFY_ADMIN - Authorization header: %s", auth_header)
     token = auth_header.replace("Bearer ", "").strip()
+    logger.debug("VERIFY_ADMIN - token: %s, admin_tokens: %s", token, admin_tokens)
 
     if token not in admin_tokens:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -248,9 +250,11 @@ def admin_login(login: AdminLogin, request: Request):
         )
 
     if login.password == ADMIN_PASSWORD:
+        global admin_tokens
         lockout_data[client_ip] = {"attempts": 0, "locked_until": None}
         token = secrets.token_hex(32)
         admin_tokens.add(token)
+        logger.debug("LOGIN SUCCESS - token added: %s", token)
         return {"success": True, "message": "Admin autenticado", "token": token}
 
     lockout_data[client_ip]["attempts"] += 1
