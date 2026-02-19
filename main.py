@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 import os
 import logging
+import secrets
 
 logging.basicConfig(level=logging.DEBUG)
 from datetime import datetime, timedelta
@@ -30,7 +31,31 @@ Base.metadata.create_all(bind=engine)
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 
-lockout_data = {"attempts": 0, "locked_until": None}
+lockout_data = {}
+admin_tokens = set()
+
+
+def get_client_ip(request: Request) -> str:
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def verify_admin(request: Request):
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header.replace("Bearer ", "").strip()
+
+    if token not in admin_tokens:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    return True
+
+
+def verify_admin_origin(request: Request):
+    referer = request.headers.get("Referer", "")
+    if "/admin" not in referer and "/admin.html" not in referer:
+        raise HTTPException(status_code=403, detail="Access denied")
 
 
 def levenshtein_distance(s1: str, s2: str) -> int:
@@ -138,7 +163,9 @@ def group_to_dict(group: Group):
 
 
 @app.post("/api/groups")
-def create_group(group: GroupCreate, db: Session = Depends(get_db)):
+def create_group(group: GroupCreate, request: Request, db: Session = Depends(get_db)):
+    verify_admin(request)
+
     if len(group.name) < 3:
         raise HTTPException(
             status_code=400, detail="El nombre debe tener al menos 3 caracteres"
@@ -154,7 +181,9 @@ def create_group(group: GroupCreate, db: Session = Depends(get_db)):
 
 
 @app.put("/api/groups")
-def update_group(group: GroupUpdate, db: Session = Depends(get_db)):
+def update_group(group: GroupUpdate, request: Request, db: Session = Depends(get_db)):
+    verify_admin(request)
+
     db_group = db.query(Group).filter(Group.id == group.id).first()
     if not db_group:
         raise HTTPException(status_code=404, detail="Grupo no encontrado")
@@ -168,7 +197,9 @@ def update_group(group: GroupUpdate, db: Session = Depends(get_db)):
 
 
 @app.delete("/api/groups/{group_id}")
-def delete_group(group_id: int, db: Session = Depends(get_db)):
+def delete_group(group_id: int, request: Request, db: Session = Depends(get_db)):
+    verify_admin(request)
+
     db_group = db.query(Group).filter(Group.id == group_id).first()
     if not db_group:
         raise HTTPException(status_code=404, detail="Grupo no encontrado")
@@ -179,7 +210,9 @@ def delete_group(group_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/api/groups/pin")
-def pin_group(pin_data: PinGroup, db: Session = Depends(get_db)):
+def pin_group(pin_data: PinGroup, request: Request, db: Session = Depends(get_db)):
+    verify_admin(request)
+
     db_group = db.query(Group).filter(Group.id == pin_data.group_id).first()
     if not db_group:
         raise HTTPException(status_code=404, detail="Grupo no encontrado")
@@ -191,11 +224,18 @@ def pin_group(pin_data: PinGroup, db: Session = Depends(get_db)):
 
 
 @app.post("/api/admin/login")
-def admin_login(login: AdminLogin):
+def admin_login(login: AdminLogin, request: Request):
     global lockout_data
 
-    if lockout_data["locked_until"] and datetime.now() < lockout_data["locked_until"]:
-        remaining = (lockout_data["locked_until"] - datetime.now()).total_seconds()
+    client_ip = get_client_ip(request)
+
+    if client_ip not in lockout_data:
+        lockout_data[client_ip] = {"attempts": 0, "locked_until": None}
+
+    ip_data = lockout_data[client_ip]
+
+    if ip_data["locked_until"] and datetime.now() < ip_data["locked_until"]:
+        remaining = (ip_data["locked_until"] - datetime.now()).total_seconds()
         hours = int(remaining // 3600)
         minutes = int((remaining % 3600) // 60)
         if hours > 0:
@@ -208,28 +248,40 @@ def admin_login(login: AdminLogin):
         )
 
     if login.password == ADMIN_PASSWORD:
-        lockout_data = {"attempts": 0, "locked_until": None}
-        return {"success": True, "message": "Admin autenticado"}
+        lockout_data[client_ip] = {"attempts": 0, "locked_until": None}
+        token = secrets.token_hex(32)
+        admin_tokens.add(token)
+        return {"success": True, "message": "Admin autenticado", "token": token}
 
-    lockout_data["attempts"] += 1
-    if lockout_data["attempts"] >= 3:
-        lockout_data["locked_until"] = datetime.now() + timedelta(hours=24)
+    lockout_data[client_ip]["attempts"] += 1
+    if lockout_data[client_ip]["attempts"] >= 3:
+        lockout_data[client_ip]["locked_until"] = datetime.now() + timedelta(hours=24)
         raise HTTPException(
             status_code=403, detail="Demasiados intentos. Cuenta bloqueada por 24 horas"
         )
 
     raise HTTPException(
         status_code=401,
-        detail=f"Contraseña incorrecta. Intentos: {lockout_data['attempts']}/3",
+        detail=f"Contraseña incorrecta. Intentos: {lockout_data[client_ip]['attempts']}/3",
     )
 
 
 @app.get("/api/admin/status")
-def admin_status():
-    if lockout_data["locked_until"] and datetime.now() < lockout_data["locked_until"]:
-        remaining = int((lockout_data["locked_until"] - datetime.now()).total_seconds())
-        return {"locked": True, "remaining_seconds": remaining}
-    return {"locked": False, "attempts": lockout_data["attempts"]}
+def admin_status(request: Request):
+    client_ip = get_client_ip(request)
+
+    if client_ip in lockout_data:
+        ip_data = lockout_data[client_ip]
+        if ip_data["locked_until"] and datetime.now() < ip_data["locked_until"]:
+            remaining = int((ip_data["locked_until"] - datetime.now()).total_seconds())
+            return {
+                "locked": True,
+                "remaining_seconds": remaining,
+                "attempts": ip_data["attempts"],
+            }
+        return {"locked": False, "attempts": ip_data["attempts"]}
+
+    return {"locked": False, "attempts": 0}
 
 
 class ImportantLinkCreate(BaseModel):
@@ -262,7 +314,11 @@ def get_important_links(db: Session = Depends(get_db)):
 
 
 @app.post("/api/important-links")
-def create_important_link(link: ImportantLinkCreate, db: Session = Depends(get_db)):
+def create_important_link(
+    link: ImportantLinkCreate, request: Request, db: Session = Depends(get_db)
+):
+    verify_admin(request)
+
     if len(link.title) < 3:
         raise HTTPException(
             status_code=400, detail="El título debe tener al menos 3 caracteres"
@@ -280,7 +336,11 @@ def create_important_link(link: ImportantLinkCreate, db: Session = Depends(get_d
 
 
 @app.put("/api/important-links")
-def update_important_link(link: ImportantLinkUpdate, db: Session = Depends(get_db)):
+def update_important_link(
+    link: ImportantLinkUpdate, request: Request, db: Session = Depends(get_db)
+):
+    verify_admin(request)
+
     db_link = db.query(ImportantLink).filter(ImportantLink.id == link.id).first()
     if not db_link:
         raise HTTPException(status_code=404, detail="Link no encontrado")
@@ -294,7 +354,11 @@ def update_important_link(link: ImportantLinkUpdate, db: Session = Depends(get_d
 
 
 @app.delete("/api/important-links/{link_id}")
-def delete_important_link(link_id: int, db: Session = Depends(get_db)):
+def delete_important_link(
+    link_id: int, request: Request, db: Session = Depends(get_db)
+):
+    verify_admin(request)
+
     db_link = db.query(ImportantLink).filter(ImportantLink.id == link_id).first()
     if not db_link:
         raise HTTPException(status_code=404, detail="Link no encontrado")

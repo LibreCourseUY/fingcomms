@@ -612,9 +612,15 @@
                 const editingLink = ref(null);
                 const linkToDelete = ref(null);
                 const showDeleteLinkConfirm = ref(false);
+                const token = ref('');
 
                 const baseUrl = window.location.pathname.split('/').slice(0, -1).join('/') || '';
                 const apiUrl = (path) => `${baseUrl}${path}`;
+
+                const authHeaders = () => ({
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token.value}`
+                });
 
                 const newGroup = ref({
                     name: '',
@@ -659,6 +665,9 @@
                         });
 
                         if (response.ok) {
+                            const data = await response.json();
+                            token.value = data.token;
+                            localStorage.setItem('adminToken', data.token);
                             isAdmin.value = true;
                             fetchGroups();
                         } else {
@@ -676,9 +685,23 @@
 
                 const logout = () => {
                     isAdmin.value = false;
+                    token.value = '';
+                    localStorage.removeItem('adminToken');
                     password.value = '';
                     activeTab.value = 'manage';
                 };
+
+                const checkStoredToken = () => {
+                    const stored = localStorage.getItem('adminToken');
+                    if (stored) {
+                        token.value = stored;
+                        isAdmin.value = true;
+                    }
+                };
+
+                onMounted(() => {
+                    checkStoredToken();
+                });
 
                 const fetchGroups = async () => {
                     try {
@@ -693,7 +716,7 @@
                     try {
                         const response = await fetch(apiUrl('/api/groups/pin'), {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: authHeaders(),
                             body: JSON.stringify({ group_id: group.id, pinned: !group.pinned })
                         });
 
@@ -715,7 +738,7 @@
                     try {
                         const response = await fetch(apiUrl('/api/groups'), {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: authHeaders(),
                             body: JSON.stringify(newGroup.value)
                         });
 
@@ -752,7 +775,7 @@
                     try {
                         const response = await fetch(apiUrl('/api/groups'), {
                             method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: authHeaders(),
                             body: JSON.stringify({
                                 id: editingGroup.value.id,
                                 name: newGroup.value.name,
@@ -794,7 +817,8 @@
 
                     try {
                         const response = await fetch(apiUrl(`/api/groups/${groupToDelete.value.id}`), {
-                            method: 'DELETE'
+                            method: 'DELETE',
+                            headers: authHeaders()
                         });
 
                         if (response.ok) {
@@ -834,7 +858,7 @@
                     try {
                         const response = await fetch(apiUrl('/api/important-links'), {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: authHeaders(),
                             body: JSON.stringify(newLink.value)
                         });
 
@@ -870,7 +894,7 @@
                     try {
                         const response = await fetch(apiUrl('/api/important-links'), {
                             method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: authHeaders(),
                             body: JSON.stringify({
                                 id: editingLink.value.id,
                                 title: newLink.value.title,
@@ -911,7 +935,8 @@
 
                     try {
                         const response = await fetch(apiUrl(`/api/important-links/${linkToDelete.value.id}`), {
-                            method: 'DELETE'
+                            method: 'DELETE',
+                            headers: authHeaders()
                         });
 
                         if (response.ok) {
@@ -937,6 +962,7 @@
                 return {
                     password,
                     isAdmin,
+                    token,
                     error,
                     lockoutRemaining,
                     lockoutMinutes,
