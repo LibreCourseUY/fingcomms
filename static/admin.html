@@ -727,15 +727,6 @@
                     );
                 });
 
-                const checkStoredToken = () => {
-                    const stored = localStorage.getItem('adminToken');
-                    if (stored) {
-                        token.value = stored;
-                        isAdmin.value = true;
-                        fetchGroups();
-                    }
-                };
-
                 onMounted(() => {
                     checkStoredToken();
                 });
