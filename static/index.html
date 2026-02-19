@@ -267,7 +267,7 @@
 
         .groups-grid {
             display: grid;
-            gap: 20px;
+            gap: 8px;
             padding: 0 20px 20px;
             width: 100%;
             max-width: 1600px;
@@ -282,62 +282,64 @@
 
         .group-card {
             background-color: #2d333b;
-            border-radius: 16px;
-            padding: 16px 24px;
+            border-radius: 12px;
+            padding: 12px 16px;
             transition: all 0.3s ease;
             border: 1px solid #3d444d;
             display: flex;
-            flex-direction: column;
-            min-height: 180px;
+            flex-direction: row;
+            align-items: center;
+            min-height: 52px;
             width: 100%;
             box-sizing: border-box;
         }
 
         .group-card:hover {
             background-color: #373e47;
-            transform: translateY(-6px);
+            transform: translateY(-2px);
             border-color: #545d68;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .group-card .card-content {
             flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .group-card .join-btn-wrapper {
             display: flex;
             justify-content: center;
-            margin-top: auto;
+            margin-top: 0;
+            margin-left: 12px;
         }
 
         .group-name {
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 600;
             color: #ffffff;
-            margin-bottom: 8px;
+            margin-bottom: 0;
         }
 
         .group-description {
-            font-size: 14px;
-            color: #8b949e;
-            margin-bottom: 24px;
-            line-height: 1.5;
-            min-height: 42px;
+            display: none;
         }
 
         .join-btn {
-            width: 100%;
-            padding: 12px;
+            width: auto;
+            padding: 6px 12px;
             background-color: #957dcd;
             color: #ffffff;
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 6px;
+            font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             text-decoration: none;
             text-align: center;
+            white-space: nowrap;
             display: block;
         }
 
@@ -527,24 +529,11 @@
             gap: 4px;
             background-color: rgba(33, 188, 98, 0.15);
             color: #a388f3;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            padding: 4px 8px;
+            padding: 2px 6px;
             border-radius: 4px;
-            margin-bottom: 8px;
-        }
-
-        .group-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 8px;
-        }
-
-        .group-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #ffffff;
+            margin-right: 8px;
         }
 
         .manage-btn {
@@ -681,20 +670,15 @@
                 <div class="groups-grid" v-for="(row, index) in groupRows" :key="index" :class="'cols-' + row.cols">
                     <div class="group-card" v-for="group in row.items" :key="group.id">
                     <div class="card-content">
-                        <div class="group-card-header">
-                            <div>
-                                <div class="pinned-badge" v-if="group.pinned"><i class="fas fa-thumbtack"></i> Fijado</div>
-                                <h3 class="group-name">{{ group.name }}</h3>
-                            </div>
-                        </div>
-                        <p class="group-description">{{ group.description }}</p>
+                        <div class="pinned-badge" v-if="group.pinned"><i class="fas fa-thumbtack"></i></div>
+                        <h3 class="group-name">{{ group.name }}</h3>
                     </div>
                     <div class="join-btn-wrapper">
                         <a :href="group.url" target="_blank" class="join-btn" v-if="group.url">
-                            Unirse al Grupo
+                            Unirse
                         </a>
                         <button class="join-btn" @click="joinGroup(group)" v-else>
-                            Unirse al Grupo
+                            Unirse
                         </button>
                     </div>
                 </div>
