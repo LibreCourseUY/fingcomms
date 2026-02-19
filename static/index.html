@@ -109,6 +109,26 @@
             margin-bottom: 40px;
         }
 
+        .important-links-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 0 20px;
+        }
+
+        .important-links-header .important-links-title {
+            margin-bottom: 0;
+        }
+
+        .important-links-header i {
+            color: #8b949e;
+        }
+
+        .important-links-section.collapsed .important-links-content {
+            display: none;
+        }
+
         .important-links-title {
             font-size: 14px;
             color: #8b949e;
@@ -653,6 +673,10 @@
                 margin-bottom: 24px;
             }
 
+            .important-links-header {
+                padding: 0 10px;
+            }
+
             .important-links-title {
                 font-size: 12px;
             }
@@ -677,6 +701,13 @@
             .groups-grid {
                 gap: 8px;
                 padding: 0 10px 16px;
+            }
+
+            .groups-grid.cols-1,
+            .groups-grid.cols-2,
+            .groups-grid.cols-3,
+            .groups-grid.cols-4 {
+                grid-template-columns: 1fr;
             }
 
             .group-card {
@@ -728,18 +759,23 @@
         </header>
 
         <main class="main-content">
-            <div class="important-links-section" v-if="importantLinks.length > 0">
-                <h3 class="important-links-title">Links Importantes</h3>
-                <div v-for="(row, index) in linkRows" :key="index" class="important-links-grid" :class="'cols-' + row.cols">
-                    <div class="important-link-card" v-for="link in row.items" :key="link.id">
-                        <div class="link-content">
-                            <h4 class="important-link-title">{{ link.title }}</h4>
-                            <p class="important-link-description">{{ link.description }}</p>
-                        </div>
-                        <div class="link-btn-wrapper">
-                            <a :href="link.url" target="_blank" class="important-link-btn">
-                                Ver Documento
-                            </a>
+            <div class="important-links-section" v-if="importantLinks.length > 0" :class="{ 'collapsed': importantLinksCollapsed }">
+                <div class="important-links-header" @click="importantLinksCollapsed = !importantLinksCollapsed">
+                    <h3 class="important-links-title">Links Importantes</h3>
+                    <i class="fas" :class="importantLinksCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+                </div>
+                <div class="important-links-content" v-show="!importantLinksCollapsed">
+                    <div v-for="(row, index) in linkRows" :key="index" class="important-links-grid" :class="'cols-' + row.cols">
+                        <div class="important-link-card" v-for="link in row.items" :key="link.id">
+                            <div class="link-content">
+                                <h4 class="important-link-title">{{ link.title }}</h4>
+                                <p class="important-link-description">{{ link.description }}</p>
+                            </div>
+                            <div class="link-btn-wrapper">
+                                <a :href="link.url" target="_blank" class="important-link-btn">
+                                    Ver Documento
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -801,6 +837,7 @@
                 
                 const groups = ref([]);
                 const importantLinks = ref([]);
+                const importantLinksCollapsed = ref(true);
                 const searchQuery = ref('');
                 const loading = ref(true);
                 const showModal = ref(false);
@@ -1086,6 +1123,7 @@
                 return {
                     groups,
                     importantLinks,
+                    importantLinksCollapsed,
                     searchQuery,
                     loading,
                     filteredGroups,
