@@ -290,6 +290,11 @@ def delete_important_link(link_id: int, db: Session = Depends(get_db)):
     return {"success": True}
 
 
+@app.get("/favicon.svg")
+def serve_favicon():
+    return FileResponse("static/favicon.svg", media_type="image/svg+xml")
+
+
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 def serve_catch_all(path: str):
     if ".." in path:
