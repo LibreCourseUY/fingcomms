@@ -296,9 +296,11 @@ def serve_catch_all(path: str):
         raise HTTPException(status_code=404, detail="Not found")
     if path.startswith("api/"):
         raise HTTPException(status_code=404, detail="Not found")
+    if path == "favicon.svg" or path == "static/favicon.svg":
+        return FileResponse("static/favicon.svg", media_type="image/svg+xml")
     if path.startswith("static/"):
         return FileResponse(path)
-    if path.startswith("admin"):
+    if path == "admin" or path.startswith("admin/"):
         return FileResponse("static/admin.html")
     return FileResponse("static/index.html")
 
