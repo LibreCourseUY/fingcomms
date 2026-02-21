@@ -658,11 +658,13 @@
                         if (data.locked) {
                             lockoutRemaining.value = true;
                             let tiempo = data.remaining_seconds;
+                            lockoutTimeRemaining.value = timeToText(tiempo);
                             let updateTime = 1000;
-                            setInterval(()=>{
+                            let lockoutInterval = setInterval(()=>{
                                 lockoutTimeRemaining.value = timeToText(tiempo);
-                                if(lockoutTimeRemaining.value < 0){
+                                if(tiempo < 0){
                                     window.location.reload();
+                                    clearInterval(lockoutInterval);
                                 }
                                 tiempo -= updateTime / 1000;
                             }, updateTime)
@@ -674,7 +676,7 @@
                 function timeToText(time){
                     let hours = Math.floor(time / 3600);
                     let minutes = Math.floor((time % 3600) / 60);
-                    let seconds = time % 60;
+                    let seconds = Math.floor(time % 60);
                     return `${hours} horas ${minutes} minutos y ${seconds} segundos`;
                 };
 
