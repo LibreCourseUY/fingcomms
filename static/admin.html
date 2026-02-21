@@ -9,7 +9,7 @@
         const basePath = window.location.pathname.split('/').slice(0, -1).join('/') || '';
         document.getElementById('favicon').href = basePath + '/static/favicon.svg';
     </script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -406,7 +406,7 @@
                 <h2 class="login-title">Acceso Admin</h2>
                 
                 <div class="lockout-info" v-if="lockoutRemaining">
-                    Cuenta bloqueada. Intenta en {{ lockoutMinutes }} minutos
+                    Cuenta bloqueada. Intenta en {{ lockoutTimeRemaining }}
                 </div>
 
                 <div class="form-group">
@@ -608,7 +608,7 @@
                 const isAdmin = ref(false);
                 const error = ref('');
                 const lockoutRemaining = ref(false);
-                const lockoutMinutes = ref(0);
+                const lockoutTimeRemaining = ref(0);
                 const groups = ref([]);
                 const activeTab = ref('manage');
                 const showToast = ref(false);
@@ -657,11 +657,27 @@
                         const data = await response.json();
                         if (data.locked) {
                             lockoutRemaining.value = true;
-                            lockoutMinutes.value = Math.ceil(data.remaining_seconds / 60);
+                            let tiempo = data.remaining_seconds;
+                            lockoutTimeRemaining.value = timeToText(tiempo);
+                            let updateTime = 1000;
+                            let lockoutInterval = setInterval(()=>{
+                                lockoutTimeRemaining.value = timeToText(tiempo);
+                                if(tiempo < 0){
+                                    window.location.reload();
+                                    clearInterval(lockoutInterval);
+                                }
+                                tiempo -= updateTime / 1000;
+                            }, updateTime)
                         }
                     } catch (e) {
                         console.error(e);
                     }
+                };
+                function timeToText(time){
+                    let hours = Math.floor(time / 3600);
+                    let minutes = Math.floor((time % 3600) / 60);
+                    let seconds = Math.floor(time % 60);
+                    return `${hours} horas ${minutes} minutos y ${seconds} segundos`;
                 };
 
                 const login = async () => {
@@ -984,7 +1000,7 @@
                     token,
                     error,
                     lockoutRemaining,
-                    lockoutMinutes,
+                    lockoutTimeRemaining,
                     groups,
                     searchQuery,
                     filteredGroups,
