@@ -1,6 +1,6 @@
 # Fingcomms - Group Directory for Fing Students
 
-[![DeepWiki](https://deepwiki.com/badge-maker?url=https://deepwiki.com/Fingdev/fingcomms)](https://deepwiki.com/Fingdev/fingcomms)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Fingdev/fingcomms)
 
 Welcome to Fingcomms! This project is a simple directory that allows Fing (Facultad de Ingeniería, UdelaR) students to find and connect with study groups and projects.
 
