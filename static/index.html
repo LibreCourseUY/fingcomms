@@ -853,6 +853,36 @@
                     }
                 };
 
+                const trackMetrics = async (eventType, metadata = {}) => {
+                    try {
+                        await fetch(apiUrl('/api/metrics/event'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ event_type: eventType, metadata })
+                        });
+                    } catch (e) {
+                        console.error('Metrics tracking failed:', e);
+                    }
+                };
+
+                const trackView = () => {
+                    try {
+                        fetch(apiUrl('/api/metrics/views'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                path: window.location.pathname,
+                                referrer: document.referrer,
+                                user_agent: navigator.userAgent,
+                                viewport: `${window.innerWidth}x${window.innerHeight}`,
+                                document_title: document.title
+                            })
+                        });
+                    } catch (e) {
+                        console.error('View tracking failed:', e);
+                    }
+                };
+
                 const debounceSearch = () => {
                     clearTimeout(searchTimeout);
                     searchTimeout = setTimeout(fetchGroups, 200);
@@ -968,6 +998,7 @@
                 };
 
                 const joinGroup = (group) => {
+                    trackMetrics('fingcomms_click', { group_id: group.id, group_name: group.name });
                     showToastMessage(`Te has unido a "${group.name}"`);
                 };
 
@@ -1094,6 +1125,7 @@
                 onMounted(() => {
                     fetchGroups();
                     fetchImportantLinks();
+                    trackView();
                 });
 
                 const fetchImportantLinks = async () => {
