@@ -3,5 +3,5 @@ uvicorn
 python-dotenv
 sqlalchemy
 psycopg2-binary
-dbwarden
+dbwarden>=0.3.3
 httpx
