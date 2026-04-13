@@ -5,16 +5,17 @@ set -e
 python -c "
 import os, re
 
-env = os.getenv('ENVIRONMENT', 'DEV')
-if env == 'PROD':
+db_url = os.getenv('DATABASE_URL', 'sqlite:///./groups.db')
+
+# Auto-detect database type from URL
+if db_url.startswith('postgresql') or db_url.startswith('postgres'):
     db_type = 'postgresql'
-    db_url = os.environ['DATABASE_URL']
 else:
     db_type = 'sqlite'
-    db_url = os.getenv('DATABASE_URL', 'sqlite:///./groups.db')
 
 # Strip any driver suffix so dbwarden gets plain postgresql:// or sqlite://
 db_url = re.sub(r'^postgresql(\+\w+)?://', 'postgresql://', db_url)
+db_url = re.sub(r'^postgres(\+\w+)?://', 'postgresql://', db_url)
 db_url = re.sub(r'^sqlite(\+\w+)?://', 'sqlite://', db_url)
 
 with open('warden.toml', 'w') as f:
