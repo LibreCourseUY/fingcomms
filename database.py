@@ -105,15 +105,6 @@ class ImportantLink(Base):
 
 
 # ============================================================================
-# DATABASE INITIALIZATION
-# ============================================================================
-
-# Create all tables in the database
-# This is safe to run multiple times - it only creates tables if they don't exist
-Base.metadata.create_all(bind=engine)
-
-
-# ============================================================================
 # DATABASE SESSION HELPER
 # ============================================================================
 

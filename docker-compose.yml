@@ -7,5 +7,5 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - ENVIRONMENT=${ENVIRONMENT:-DEV}
       - DATABASE_URL=${DATABASE_URL:-sqlite:///./groups.db}
-      - ROOT_PATH=${ROOT_PATH:-}
+      - ROOT_PATH=${ROOT_PATH:-/fingcomms}
     restart: unless-stopped

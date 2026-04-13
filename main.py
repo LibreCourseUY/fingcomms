@@ -28,7 +28,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from database import engine, SessionLocal, Group, ImportantLink, Base, get_db
+from database import SessionLocal, Group, ImportantLink, get_db
 
 # ============================================================================
 # APPLICATION SETUP
@@ -46,9 +46,6 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     return response
 
-
-# Create all database tables on startup
-Base.metadata.create_all(bind=engine)
 
 # ============================================================================
 # ADMIN AUTHENTICATION CONFIGURATION
