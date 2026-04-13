@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS groups (
     name VARCHAR(255) NOT NULL,
     description VARCHAR(500),
     url VARCHAR(500),
-    pinned BOOLEAN DEFAULT FALSE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    pinned BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at DATETIME NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS important_links (
@@ -14,11 +14,10 @@ CREATE TABLE IF NOT EXISTS important_links (
     title VARCHAR(255) NOT NULL,
     description VARCHAR(500),
     url VARCHAR(500) NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL
 );
 
 -- rollback
 
-DROP TABLE IF EXISTS important_links;
-
-DROP TABLE IF EXISTS groups;
+DROP TABLE important_links;
+DROP TABLE groups;
