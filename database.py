@@ -22,9 +22,17 @@ import os
 # ============================================================================
 
 # Database URL: defaults to SQLite file in current directory
-# In production, you would use PostgreSQL or MySQL by setting DATABASE_URL env var
-# Example: postgresql://user:password@localhost/fingcomms
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./groups.db")
+# In production, uses PostgreSQL via DATABASE_URL env var
+ENVIRONMENT = os.getenv("ENVIRONMENT", "DEV")
+
+if ENVIRONMENT == "PROD":
+    _db_url = os.getenv("DATABASE_URL")
+    if not _db_url:
+        raise RuntimeError("DATABASE_URL is required when ENVIRONMENT=PROD")
+    # Ensure sync psycopg2 driver for production PostgreSQL
+    DATABASE_URL = _db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+else:
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./groups.db")
 
 # Create the database engine
 # - echo=False: Don't log all SQL queries (set to True for debugging)

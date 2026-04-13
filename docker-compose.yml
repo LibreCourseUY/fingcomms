@@ -5,8 +5,7 @@ services:
       - "8000:8000"
     environment:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
-      - DATABASE_URL=sqlite:///./groups.db
+      - ENVIRONMENT=${ENVIRONMENT:-DEV}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./groups.db}
       - ROOT_PATH=${ROOT_PATH:-}
-    volumes:
-      - ./groups.db:/app/groups.db
     restart: unless-stopped
