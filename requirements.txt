@@ -5,3 +5,4 @@ sqlalchemy
 psycopg2-binary
 dbwarden>=0.7
 httpx
+asyncpg
