@@ -37,6 +37,7 @@ database_config(
     database_url=DATABASE_URL,
     dev_database_type="sqlite",
     dev_database_url="sqlite:///./groups.db",
+    migrations_dir="migrations",
 )
 
 if ENVIRONMENT == "PROD":
