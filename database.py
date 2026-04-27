@@ -17,22 +17,26 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from datetime import datetime
 import os
 
-# ============================================================================
-# DATABASE CONFIGURATION
-# ============================================================================
-
-# Database URL: defaults to SQLite file in current directory
-# In production, uses PostgreSQL via DATABASE_URL env var
 ENVIRONMENT = os.getenv("ENVIRONMENT", "DEV")
 
 if ENVIRONMENT == "PROD":
     _db_url = os.getenv("DATABASE_URL")
     if not _db_url:
         raise RuntimeError("DATABASE_URL is required when ENVIRONMENT=PROD")
-    # Ensure sync psycopg2 driver for production PostgreSQL
     DATABASE_URL = _db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 else:
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./groups.db")
+
+from dbwarden import database_config
+
+database_config(
+    database_name="primary",
+    default=True,
+    database_type="postgresql" if ENVIRONMENT == "PROD" else "sqlite",
+    database_url=DATABASE_URL,
+    dev_database_type="sqlite",
+    dev_database_url="sqlite:///./groups.db",
+)
 
 # Create the database engine
 # - echo=False: Don't log all SQL queries (set to True for debugging)
