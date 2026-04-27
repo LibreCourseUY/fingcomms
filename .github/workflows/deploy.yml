@@ -27,10 +27,6 @@ jobs:
           provenance: false
           tags: ghcr.io/librecourseuy/${{ github.event.repository.name }}:latest
 
-      - name: Trigger Watchtower
-        run: |
-          curl -s \
-            -H "Authorization: Bearer ${{ secrets.WATCHTOWER_TOKEN }}" \
-            http://${{ secrets.VPS_IP }}:8080/v1/update
+      
 
       
