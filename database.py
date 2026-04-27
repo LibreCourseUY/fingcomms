@@ -14,6 +14,7 @@ Key Concepts:
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from datetime import datetime
 import os
 
@@ -23,7 +24,7 @@ if ENVIRONMENT == "PROD":
     _db_url = os.getenv("DATABASE_URL")
     if not _db_url:
         raise RuntimeError("DATABASE_URL is required when ENVIRONMENT=PROD")
-    DATABASE_URL = _db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    DATABASE_URL = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 else:
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./groups.db")
 
@@ -38,14 +39,12 @@ database_config(
     dev_database_url="sqlite:///./groups.db",
 )
 
-# Create the database engine
-# - echo=False: Don't log all SQL queries (set to True for debugging)
-# - future=True: Use SQLAlchemy 2.0 style
-engine = create_engine(DATABASE_URL, echo=False, future=True)
+if ENVIRONMENT == "PROD":
+    engine = create_async_engine(DATABASE_URL, echo=False, future=True)
+    AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+else:
+    engine = create_engine(DATABASE_URL, echo=False, future=True)
 
-# Create a session factory
-# Sessions are used to interact with the database
-# expire_on_commit=False: Keep objects usable after commit
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
