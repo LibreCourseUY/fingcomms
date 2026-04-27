@@ -24,9 +24,13 @@ if ENVIRONMENT == "PROD":
     _db_url = os.getenv("DATABASE_URL")
     if not _db_url:
         raise RuntimeError("DATABASE_URL is required when ENVIRONMENT=PROD")
+    # Sync URL for dbwarden migrations
+    _sync_db_url = _db_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    # Async URL for the app
     DATABASE_URL = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 else:
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./groups.db")
+    _sync_db_url = DATABASE_URL
 
 from dbwarden import database_config
 
@@ -34,7 +38,7 @@ database_config(
     database_name="primary",
     default=True,
     database_type="postgresql" if ENVIRONMENT == "PROD" else "sqlite",
-    database_url=DATABASE_URL,
+    database_url=_sync_db_url,
     dev_database_type="sqlite",
     dev_database_url="sqlite:///./groups.db",
     migrations_dir="migrations",
