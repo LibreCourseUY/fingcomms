@@ -117,20 +117,19 @@ class ImportantLink(Base):
 # ============================================================================
 
 
-def get_db():
+async def get_db():
     """
-    FastAPI dependency that provides a database session for each request.
-
-    Usage in FastAPI endpoints:
-        @app.get("/items")
-        def get_items(db: Session = Depends(get_db)):
-            ...
-
-    The 'yield' provides the session, and the 'finally' block ensures
-    it's always closed, even if an error occurs.
+    FastAPI dependency that provides an async database session for each request.
     """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    if ENVIRONMENT == "PROD":
+        async with AsyncSessionLocal() as session:
+            try:
+                yield session
+            finally:
+                await session.close()
+    else:
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()

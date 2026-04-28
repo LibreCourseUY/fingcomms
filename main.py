@@ -26,9 +26,10 @@ import httpx
 logging.basicConfig(level=logging.DEBUG)
 from datetime import datetime, timedelta
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
-from database import SessionLocal, Group, ImportantLink, get_db
+from database import SessionLocal, AsyncSessionLocal, Group, ImportantLink, get_db
 
 # ============================================================================
 # APPLICATION SETUP
@@ -249,14 +250,15 @@ class AdminLogin(BaseModel):
 
 
 @app.get("/api/groups")
-def get_groups(q: Optional[str] = None, db: Session = Depends(get_db)):
+async def get_groups(q: Optional[str] = None, db: AsyncSession = Depends(get_db)):
     """
     Get all groups, optionally filtered by search query.
 
     If 'q' parameter is provided, uses fuzzy search to find matching groups.
     Otherwise, returns all groups with pinned groups appearing first.
     """
-    groups = db.query(Group).all()
+    result = await db.execute(select(Group))
+    groups = result.scalars().all()
 
     if q and q.strip():
         results = fuzzy_search(q, groups)
@@ -280,7 +282,7 @@ def group_to_dict(group: Group):
 
 
 @app.post("/api/groups")
-def create_group(group: GroupCreate, request: Request, db: Session = Depends(get_db)):
+async def create_group(group: GroupCreate, request: Request, db: AsyncSession = Depends(get_db)):
     """Create a new group. Requires admin authentication."""
     verify_admin(request)
 
@@ -293,44 +295,46 @@ def create_group(group: GroupCreate, request: Request, db: Session = Depends(get
         name=group.name, description=group.description, url=group.url, pinned=False
     )
     db.add(new_group)
-    db.commit()
-    db.refresh(new_group)
+    await db.commit()
+    await db.refresh(new_group)
     return group_to_dict(new_group)
 
 
 @app.put("/api/groups")
-def update_group(group: GroupUpdate, request: Request, db: Session = Depends(get_db)):
+async def update_group(group: GroupUpdate, request: Request, db: AsyncSession = Depends(get_db)):
     """Update an existing group. Requires admin authentication."""
     verify_admin(request)
 
-    db_group = db.query(Group).filter(Group.id == group.id).first()
+    result = await db.execute(select(Group).filter(Group.id == group.id))
+    db_group = result.scalar_one_or_none()
     if not db_group:
         raise HTTPException(status_code=404, detail="Grupo no encontrado")
 
     db_group.name = group.name
     db_group.description = group.description
     db_group.url = group.url
-    db.commit()
-    db.refresh(db_group)
+    await db.commit()
+    await db.refresh(db_group)
     return {"success": True, "group": group_to_dict(db_group)}
 
 
 @app.delete("/api/groups/{group_id}")
-def delete_group(group_id: int, request: Request, db: Session = Depends(get_db)):
+async def delete_group(group_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     """Delete a group. Requires admin authentication."""
     verify_admin(request)
 
-    db_group = db.query(Group).filter(Group.id == group_id).first()
+    result = await db.execute(select(Group).filter(Group.id == group_id))
+    db_group = result.scalar_one_or_none()
     if not db_group:
         raise HTTPException(status_code=404, detail="Grupo no encontrado")
 
-    db.delete(db_group)
-    db.commit()
+    await db.delete(db_group)
+    await db.commit()
     return {"success": True}
 
 
 @app.post("/api/groups/pin")
-def pin_group(pin_data: PinGroup, request: Request, db: Session = Depends(get_db)):
+async def pin_group(pin_data: PinGroup, request: Request, db: AsyncSession = Depends(get_db)):
     """
     Pin or unpin a group.
     Pinned groups appear at the top of the list.
@@ -338,13 +342,14 @@ def pin_group(pin_data: PinGroup, request: Request, db: Session = Depends(get_db
     """
     verify_admin(request)
 
-    db_group = db.query(Group).filter(Group.id == pin_data.group_id).first()
+    result = await db.execute(select(Group).filter(Group.id == pin_data.group_id))
+    db_group = result.scalar_one_or_none()
     if not db_group:
         raise HTTPException(status_code=404, detail="Grupo no encontrado")
 
     db_group.pinned = pin_data.pinned
-    db.commit()
-    db.refresh(db_group)
+    await db.commit()
+    await db.refresh(db_group)
     return {"success": True, "group": group_to_dict(db_group)}
 
 
@@ -462,15 +467,16 @@ def link_to_dict(link: ImportantLink):
 
 
 @app.get("/api/important-links")
-def get_important_links(db: Session = Depends(get_db)):
+async def get_important_links(db: AsyncSession = Depends(get_db)):
     """Get all important links (public endpoint)."""
-    links = db.query(ImportantLink).all()
+    result = await db.execute(select(ImportantLink))
+    links = result.scalars().all()
     return [link_to_dict(l) for l in links]
 
 
 @app.post("/api/important-links")
-def create_important_link(
-    link: ImportantLinkCreate, request: Request, db: Session = Depends(get_db)
+async def create_important_link(
+    link: ImportantLinkCreate, request: Request, db: AsyncSession = Depends(get_db)
 ):
     """Create a new important link. Requires admin authentication."""
     verify_admin(request)
@@ -486,43 +492,45 @@ def create_important_link(
         title=link.title, description=link.description, url=link.url
     )
     db.add(new_link)
-    db.commit()
-    db.refresh(new_link)
+    await db.commit()
+    await db.refresh(new_link)
     return link_to_dict(new_link)
 
 
 @app.put("/api/important-links")
-def update_important_link(
-    link: ImportantLinkUpdate, request: Request, db: Session = Depends(get_db)
+async def update_important_link(
+    link: ImportantLinkUpdate, request: Request, db: AsyncSession = Depends(get_db)
 ):
     """Update an existing important link. Requires admin authentication."""
     verify_admin(request)
 
-    db_link = db.query(ImportantLink).filter(ImportantLink.id == link.id).first()
+    result = await db.execute(select(ImportantLink).filter(ImportantLink.id == link.id))
+    db_link = result.scalar_one_or_none()
     if not db_link:
         raise HTTPException(status_code=404, detail="Link no encontrado")
 
     db_link.title = link.title
     db_link.description = link.description
     db_link.url = link.url
-    db.commit()
-    db.refresh(db_link)
+    await db.commit()
+    await db.refresh(db_link)
     return {"success": True, "link": link_to_dict(db_link)}
 
 
 @app.delete("/api/important-links/{link_id}")
-def delete_important_link(
-    link_id: int, request: Request, db: Session = Depends(get_db)
+async def delete_important_link(
+    link_id: int, request: Request, db: AsyncSession = Depends(get_db)
 ):
     """Delete an important link. Requires admin authentication."""
     verify_admin(request)
 
-    db_link = db.query(ImportantLink).filter(ImportantLink.id == link_id).first()
+    result = await db.execute(select(ImportantLink).filter(ImportantLink.id == link_id))
+    db_link = result.scalar_one_or_none()
     if not db_link:
         raise HTTPException(status_code=404, detail="Link no encontrado")
 
-    db.delete(db_link)
-    db.commit()
+    await db.delete(db_link)
+    await db.commit()
     return {"success": True}
 
 
