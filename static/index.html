@@ -39,7 +39,9 @@
             left: 0;
             right: 0;
             height: 60px;
-            background-color: #161b22;
+            background-color: rgba(22, 27, 34, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -240,7 +242,13 @@
 
         .search-input:focus {
             border-color: #a388f3;
-            box-shadow: 0 0 0 3px rgba(33, 188, 98, 0.15);
+            box-shadow: 0 0 0 3px rgba(163, 136, 243, 0.2);
+        }
+
+        .search-input:focus-visible,
+        .form-input:focus-visible {
+            outline: 2px solid #957dcd;
+            outline-offset: 2px;
         }
 
         .search-input::placeholder {
@@ -280,23 +288,32 @@
         .groups-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
         .groups-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
 
+        @keyframes cardFadeIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .group-card {
             background-color: #2d333b;
             border-radius: 16px;
             padding: 16px 20px;
             transition: all 0.3s ease;
             border: 1px solid #3d444d;
+            border-left: 3px solid #957dcd;
             display: flex;
             flex-direction: column;
             min-height: 120px;
             width: 100%;
             box-sizing: border-box;
+            animation: cardFadeIn 0.4s ease both;
+            cursor: pointer;
         }
 
         .group-card:hover {
             background-color: #373e47;
             transform: translateY(-4px);
             border-color: #545d68;
+            border-left-color: #a388f0;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
         }
 
@@ -362,6 +379,21 @@
 
         .no-results-icon {
             font-size: 48px;
+            margin-bottom: 16px;
+            color: #545d68;
+        }
+
+        .no-results-suggestion {
+            font-size: 13px;
+            color: #6e7681;
+            margin-top: 8px;
+        }
+
+        .search-results-count {
+            text-align: center;
+            font-size: 13px;
+            color: #6e7681;
+            margin-top: -32px;
             margin-bottom: 16px;
         }
 
@@ -494,6 +526,18 @@
             font-weight: 500;
             z-index: 300;
             animation: toastIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        .toast.toast-error {
+            background-color: #f85149;
+        }
+
+        .toast.fade-out {
+            animation: toastOut 0.3s ease forwards;
         }
 
         @keyframes toastIn {
@@ -607,6 +651,24 @@
             margin-right: 8px;
         }
 
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #161b22;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3d444d;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #545d68;
+        }
+
         .manage-btn {
             background-color: #30363d;
             color: #ffffff;
@@ -674,6 +736,14 @@
             background-color: #a388f3;
             border-color: #a388f3;
             color: #ffffff;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
 
         @media (max-width: 768px) {
@@ -766,8 +836,9 @@
                     <i class="fas fa-search search-icon"></i>
                     <input 
                         type="text" 
-                        class="search-input" 
-                        placeholder="Buscar grupos..." 
+                        class="search-input"
+                        placeholder="Buscar grupos..."
+                        aria-label="Buscar grupos"
                         v-model="searchQuery"
                         @input="debounceSearch"
                     >
@@ -776,33 +847,50 @@
             </div>
 
             <div v-if="!loading">
-                <div class="groups-grid" v-for="(row, index) in groupRows" :key="index" :class="'cols-' + row.cols">
-                    <div class="group-card" v-for="group in row.items" :key="group.id">
-                    <div class="card-content">
-                        <h3 class="group-name">{{ group.name }}</h3>
-                        <p class="group-description">{{ group.description }}</p>
-                    </div>
-                    <div class="join-btn-wrapper">
-                        <a :href="group.url" target="_blank" class="join-btn" v-if="group.url">
-                            Unirse al Grupo
-                        </a>
-                        <button class="join-btn" @click="joinGroup(group)" v-else>
-                            Unirse al Grupo
-                        </button>
-                    </div>
+            <div class="groups-grid" v-for="(row, index) in groupRows" :key="index" :class="'cols-' + row.cols">
+                <div class="group-card" v-for="(group, i) in row.items" :key="group.id"
+                     :style="{ animationDelay: `${0.06 * (i + 1) + 0.1 * index}s` }">
+                <div class="card-content">
+                    <h3 class="group-name">
+                        <span class="pinned-badge" v-if="group.pinned" aria-label="Grupo fijado">
+                            <i class="fas fa-thumbtack"></i>
+                        </span>
+                        {{ group.name }}
+                    </h3>
+                    <p class="group-description">{{ group.description }}</p>
                 </div>
+                <div class="join-btn-wrapper">
+                    <a :href="group.url" target="_blank" class="join-btn" v-if="group.url"
+                       aria-label="Unirse al grupo {{ group.name }}">
+                        Unirse al Grupo
+                    </a>
+                    <button class="join-btn" @click="joinGroup(group)" v-else
+                            aria-label="Unirse al grupo {{ group.name }}">
+                        Unirse al Grupo
+                    </button>
+                </div>
+            </div>
+            </div>
+
+            <div class="search-results-count" v-if="searchQuery && !loading && filteredGroups.length > 0">
+                {{ filteredGroups.length }} resultado{{ filteredGroups.length !== 1 ? 's' : '' }}
             </div>
 
             <div class="loading" v-if="loading">
-                Cargando grupos...
+                <i class="fas fa-spinner fa-pulse"></i> Cargando grupos...
             </div>
 
-            <div class="no-results" v-if="!loading && filteredGroups.length === 0"> 
-                <p>No se encontraron grupos</p>
+            <div class="no-results" v-if="!loading && filteredGroups.length === 0">
+                <div class="no-results-icon"><i class="fas fa-search"></i></div>
+                <p v-if="searchQuery">No hay grupos que coincidan con "{{ searchQuery }}"</p>
+                <p v-else>Aún no hay grupos en Fingcomms</p>
+                <p class="no-results-suggestion" v-if="searchQuery">Intenta con otro término de búsqueda</p>
+                <p class="no-results-suggestion" v-else>¿Eres administrador? Crea el primer grupo desde el panel</p>
             </div>
         </main>
 
-        <div class="toast" v-if="showToast" :class="{ 'fade-out': toastFading }">
+        <div class="toast" v-if="showToast" :class="{ 'fade-out': toastFading, 'toast-error': toastType === 'error' }">
+            <i :class="toastType === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle'"></i>
             {{ toastMessage }}
         </div>
     </div>
@@ -830,6 +918,7 @@
                 const showToast = ref(false);
                 const toastMessage = ref('');
                 const toastFading = ref(false);
+                const toastType = ref('success');
 
                 const newGroup = ref({
                     name: '',
@@ -1002,7 +1091,9 @@
                     showToastMessage(`Te has unido a "${group.name}"`);
                 };
 
-                const showToastMessage = (message) => {
+
+                const showToastMessage = (message, type = 'success') => {
+                    toastType.value = type;
                     toastMessage.value = message;
                     showToast.value = true;
                     toastFading.value = false;
@@ -1053,13 +1144,13 @@
                             body: JSON.stringify({ group_id: group.id, pinned: !group.pinned })
                         });
 
-                        if (response.ok) {
-                            group.pinned = !group.pinned;
-                            showToastMessage(group.pinned ? ` "${group.name}" fijado` : ` "${group.name}" desfijado`);
-                        }
-                    } catch (error) {
-                        showToastMessage('Error al actualizar');
+                    if (response.ok) {
+                        group.pinned = !group.pinned;
+                        showToastMessage(`"${group.name}" ${group.pinned ? 'fijado' : 'desfijado'}`);
                     }
+                } catch (error) {
+                    showToastMessage('Error al actualizar', 'error');
+                }
                 };
 
                 const verifyAdmin = async () => {
@@ -1078,6 +1169,7 @@
                         } else {
                             const data = await response.json();
                             loginError.value = data.detail;
+                            showToastMessage(data.detail || 'Error de autenticación', 'error');
                             if (data.detail.includes('bloqueada')) {
                                 lockoutRemaining.value = true;
                                 checkAdminStatus();
@@ -1090,7 +1182,7 @@
 
                 const createGroup = async () => {
                     if (newGroup.value.name.length < 3) {
-                        showToastMessage('El nombre debe tener al menos 3 caracteres');
+                        showToastMessage('El nombre debe tener al menos 3 caracteres', 'error');
                         return;
                     }
 
@@ -1109,10 +1201,10 @@
                             newGroup.value = { name: '', description: '' };
                         } else {
                             const data = await response.json();
-                            showToastMessage(data.detail || 'Error al crear grupo');
+                            showToastMessage(data.detail || 'Error al crear grupo', 'error');
                         }
                     } catch (error) {
-                        showToastMessage('Error de conexión');
+                        showToastMessage('Error de conexión', 'error');
                     }
                 };
 
@@ -1160,6 +1252,7 @@
                     showToast,
                     toastMessage,
                     toastFading,
+                    toastType,
                     debounceSearch,
                     clearSearch,
                     joinGroup,

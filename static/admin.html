@@ -35,7 +35,9 @@
             left: 0;
             right: 0;
             height: 60px;
-            background-color: #161b22;
+            background-color: rgba(22, 27, 34, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -123,6 +125,11 @@
             border-color: #957dcd;
         }
 
+        .form-input:focus-visible {
+            outline: 2px solid #957dcd;
+            outline-offset: 2px;
+        }
+
         .btn {
             width: 100%;
             padding: 14px;
@@ -149,10 +156,14 @@
             margin-top: 12px;
         }
 
+        .error-container {
+            min-height: 22px;
+            margin-top: 8px;
+        }
+
         .error-text {
             color: #f85149;
             font-size: 13px;
-            margin-top: 8px;
         }
 
         .lockout-info {
@@ -166,6 +177,24 @@
             font-size: 14px;
         }
 
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #161b22;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3d444d;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #545d68;
+        }
+
         .toast {
             position: fixed;
             bottom: 24px;
@@ -177,6 +206,14 @@
             border-radius: 8px;
             font-weight: 500;
             z-index: 300;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        .toast.toast-error {
+            background-color: #f85149;
         }
 
         .admin-panel {
@@ -290,6 +327,7 @@
             background-color: #957dcd;
             border-color: #957dcd;
             color: #ffffff;
+            box-shadow: 0 2px 12px rgba(149, 125, 205, 0.3);
         }
 
         .group-list-url {
@@ -382,6 +420,14 @@
         .modal-actions .btn {
             flex: 1;
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -410,16 +456,20 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Contraseña de Admin</label>
+                    <label class="form-label" for="admin-password">Contraseña de Admin</label>
                     <input 
+                        id="admin-password"
                         type="password" 
                         class="form-input" 
                         placeholder="Ingresa la contraseña"
                         v-model="password"
                         @keyup.enter="login"
                         :disabled="lockoutRemaining"
+                        autocomplete="current-password"
                     >
-                    <p class="error-text" v-if="error">{{ error }}</p>
+                    <div class="error-container">
+                        <p class="error-text" v-if="error">{{ error }}</p>
+                    </div>
                 </div>
 
                 <button class="btn btn-primary" @click="login" :disabled="lockoutRemaining">
@@ -451,6 +501,7 @@
                             type="text" 
                             class="form-input" 
                             placeholder="Buscar grupos..." 
+                            aria-label="Buscar grupos"
                             v-model="searchQuery"
                         >
                     </div>
@@ -467,13 +518,14 @@
                                     :class="{ pinned: group.pinned }"
                                     @click="togglePin(group)"
                                     :title="group.pinned ? 'Desfijar' : 'Fijar'"
+                                    :aria-label="group.pinned ? 'Desfijar grupo' : 'Fijar grupo'"
                                 >
                                     <i class="fas fa-thumbtack"></i>
                                 </button>
-                                <button class="action-btn edit-btn" @click="editGroup(group)" title="Editar">
+                                <button class="action-btn edit-btn" @click="editGroup(group)" title="Editar" aria-label="Editar grupo">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="action-btn delete-btn" @click="confirmDelete(group)" title="Eliminar">
+                                <button class="action-btn delete-btn" @click="confirmDelete(group)" title="Eliminar" aria-label="Eliminar grupo">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -485,29 +537,34 @@
                     <h3 class="panel-title">{{ editingGroup ? 'Editar Grupo' : 'Crear Nuevo Grupo' }}</h3>
                     <div class="create-group-form">
                         <div class="form-group">
-                            <label class="form-label">Nombre del Grupo</label>
+                            <label class="form-label" for="group-name">Nombre del Grupo</label>
                             <input 
+                                id="group-name"
                                 type="text" 
                                 class="form-input" 
                                 placeholder="Ej: Desarrolladores Web"
                                 v-model="newGroup.name"
+                                autocomplete="off"
                             >
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Descripción</label>
+                            <label class="form-label" for="group-desc">Descripción</label>
                             <textarea 
+                                id="group-desc"
                                 class="form-input" 
                                 placeholder="Describe el propósito del grupo"
                                 v-model="newGroup.description"
                             ></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">URL del Grupo</label>
+                            <label class="form-label" for="group-url">URL del Grupo</label>
                             <input 
+                                id="group-url"
                                 type="url" 
                                 class="form-input" 
                                 placeholder="https://chat.example.com/grupo"
                                 v-model="newGroup.url"
+                                autocomplete="url"
                             >
                         </div>
                         <div class="form-actions">
@@ -531,10 +588,10 @@
                                 <div class="group-list-url">{{ link.url }}</div>
                             </div>
                             <div class="group-actions">
-                                <button class="action-btn edit-btn" @click="editLink(link)" title="Editar">
+                                <button class="action-btn edit-btn" @click="editLink(link)" title="Editar" aria-label="Editar link">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="action-btn delete-btn" @click="confirmDeleteLink(link)" title="Eliminar">
+                                <button class="action-btn delete-btn" @click="confirmDeleteLink(link)" title="Eliminar" aria-label="Eliminar link">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -545,16 +602,16 @@
                         <h4 style="font-size: 14px; color: #8b949e; margin-bottom: 12px;">{{ editingLink ? 'Editar Link' : 'Nuevo Link' }}</h4>
                         <div class="create-group-form">
                             <div class="form-group">
-                                <label class="form-label">Título</label>
-                                <input type="text" class="form-input" placeholder="Ej: Reglamento" v-model="newLink.title">
+                                <label class="form-label" for="link-title">Título</label>
+                                <input id="link-title" type="text" class="form-input" placeholder="Ej: Reglamento" v-model="newLink.title" autocomplete="off">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Descripción</label>
-                                <textarea class="form-input" placeholder="Descripción breve" v-model="newLink.description"></textarea>
+                                <label class="form-label" for="link-desc">Descripción</label>
+                                <textarea id="link-desc" class="form-input" placeholder="Descripción breve" v-model="newLink.description"></textarea>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">URL</label>
-                                <input type="url" class="form-input" placeholder="https://docs.example.com/reglamento" v-model="newLink.url">
+                                <label class="form-label" for="link-url">URL</label>
+                                <input id="link-url" type="url" class="form-input" placeholder="https://docs.example.com/reglamento" v-model="newLink.url" autocomplete="url">
                             </div>
                             <div class="form-actions">
                                 <button class="btn btn-secondary" @click="cancelLinkEdit" v-if="editingLink">Cancelar</button>
@@ -594,13 +651,14 @@
             </div>
         </main>
 
-        <div class="toast" v-if="showToast">
+        <div class="toast" v-if="showToast" :class="{ 'toast-error': toastType === 'error' }">
+            <i :class="toastType === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle'"></i>
             {{ toastMessage }}
         </div>
     </div>
 
     <script>
-        const { createApp, ref, onMounted, computed } = Vue;
+        const { createApp, ref, onMounted, onUnmounted, computed } = Vue;
 
         createApp({
             setup() {
@@ -613,6 +671,7 @@
                 const activeTab = ref('manage');
                 const showToast = ref(false);
                 const toastMessage = ref('');
+                const toastType = ref('success');
                 const editingGroup = ref(null);
                 const groupToDelete = ref(null);
                 const showDeleteConfirm = ref(false);
@@ -622,6 +681,7 @@
                 const showDeleteLinkConfirm = ref(false);
                 const token = ref('');
                 const searchQuery = ref('');
+                const lockoutInterval = ref(null);
 
                 const baseUrl = window.location.pathname.split('/').slice(0, -1).join('/') || '';
                 const apiUrl = (path) => `${baseUrl}${path}`;
@@ -643,7 +703,8 @@
                     url: ''
                 });
 
-                const showToastMessage = (message) => {
+                const showToastMessage = (message, type = 'success') => {
+                    toastType.value = type;
                     toastMessage.value = message;
                     showToast.value = true;
                     setTimeout(() => {
@@ -660,11 +721,11 @@
                             let tiempo = data.remaining_seconds;
                             lockoutTimeRemaining.value = timeToText(tiempo);
                             let updateTime = 1000;
-                            let lockoutInterval = setInterval(()=>{
+                            lockoutInterval.value = setInterval(()=>{
                                 lockoutTimeRemaining.value = timeToText(tiempo);
                                 if(tiempo < 0){
                                     window.location.reload();
-                                    clearInterval(lockoutInterval);
+                                    clearInterval(lockoutInterval.value);
                                 }
                                 tiempo -= updateTime / 1000;
                             }, updateTime)
@@ -757,16 +818,16 @@
 
                         if (response.ok) {
                             group.pinned = !group.pinned;
-                            showToastMessage(group.pinned ? ` "${group.name}" fijado` : ` "${group.name}" desfijado`);
+                            showToastMessage(`"${group.name}" ${group.pinned ? 'fijado' : 'desfijado'}`);
                         }
                     } catch (e) {
-                        showToastMessage('Error al actualizar');
+                        showToastMessage('Error al actualizar', 'error');
                     }
                 };
 
                 const createGroup = async () => {
                     if (newGroup.value.name.length < 3) {
-                        showToastMessage('El nombre debe tener al menos 3 caracteres');
+                        showToastMessage('El nombre debe tener al menos 3 caracteres', 'error');
                         return;
                     }
 
@@ -784,10 +845,10 @@
                             newGroup.value = { name: '', description: '', url: '' };
                         } else {
                             const data = await response.json();
-                            showToastMessage(data.detail || 'Error al crear grupo');
+                            showToastMessage(data.detail || 'Error al crear grupo', 'error');
                         }
                     } catch (e) {
-                        showToastMessage('Error de conexión');
+                        showToastMessage('Error de conexión', 'error');
                     }
                 };
 
@@ -803,7 +864,7 @@
 
                 const updateGroup = async () => {
                     if (newGroup.value.name.length < 3) {
-                        showToastMessage('El nombre debe tener al menos 3 caracteres');
+                        showToastMessage('El nombre debe tener al menos 3 caracteres', 'error');
                         return;
                     }
 
@@ -829,10 +890,10 @@
                             cancelEdit();
                         } else {
                             const data = await response.json();
-                            showToastMessage(data.detail || 'Error al actualizar');
+                            showToastMessage(data.detail || 'Error al actualizar', 'error');
                         }
                     } catch (e) {
-                        showToastMessage('Error de conexión');
+                        showToastMessage('Error de conexión', 'error');
                     }
                 };
 
@@ -861,10 +922,10 @@
                             showToastMessage('Grupo eliminado');
                         } else {
                             const data = await response.json();
-                            showToastMessage(data.detail || 'Error al eliminar');
+                            showToastMessage(data.detail || 'Error al eliminar', 'error');
                         }
                     } catch (e) {
-                        showToastMessage('Error de conexión');
+                        showToastMessage('Error de conexión', 'error');
                     }
 
                     showDeleteConfirm.value = false;
@@ -882,11 +943,11 @@
 
                 const createLink = async () => {
                     if (newLink.value.title.length < 3) {
-                        showToastMessage('El título debe tener al menos 3 caracteres');
+                        showToastMessage('El título debe tener al menos 3 caracteres', 'error');
                         return;
                     }
                     if (!newLink.value.url) {
-                        showToastMessage('La URL es requerida');
+                        showToastMessage('La URL es requerida', 'error');
                         return;
                     }
 
@@ -904,10 +965,10 @@
                             newLink.value = { title: '', description: '', url: '' };
                         } else {
                             const data = await response.json();
-                            showToastMessage(data.detail || 'Error al crear');
+                            showToastMessage(data.detail || 'Error al crear', 'error');
                         }
                     } catch (e) {
-                        showToastMessage('Error de conexión');
+                        showToastMessage('Error de conexión', 'error');
                     }
                 };
 
@@ -922,7 +983,7 @@
 
                 const updateLink = async () => {
                     if (newLink.value.title.length < 3) {
-                        showToastMessage('El título debe tener al menos 3 caracteres');
+                        showToastMessage('El título debe tener al menos 3 caracteres', 'error');
                         return;
                     }
 
@@ -948,10 +1009,10 @@
                             cancelLinkEdit();
                         } else {
                             const data = await response.json();
-                            showToastMessage(data.detail || 'Error al actualizar');
+                            showToastMessage(data.detail || 'Error al actualizar', 'error');
                         }
                     } catch (e) {
-                        showToastMessage('Error de conexión');
+                        showToastMessage('Error de conexión', 'error');
                     }
                 };
 
@@ -979,10 +1040,10 @@
                             showToastMessage('Link eliminado');
                         } else {
                             const data = await response.json();
-                            showToastMessage(data.detail || 'Error al eliminar');
+                            showToastMessage(data.detail || 'Error al eliminar', 'error');
                         }
                     } catch (e) {
-                        showToastMessage('Error de conexión');
+                        showToastMessage('Error de conexión', 'error');
                     }
 
                     showDeleteLinkConfirm.value = false;
@@ -992,6 +1053,12 @@
                 onMounted(() => {
                     checkLockout();
                     fetchImportantLinks();
+                });
+
+                onUnmounted(() => {
+                    if (lockoutInterval.value) {
+                        clearInterval(lockoutInterval.value);
+                    }
                 });
 
                 return {
@@ -1008,6 +1075,7 @@
                     newGroup,
                     showToast,
                     toastMessage,
+                    toastType,
                     editingGroup,
                     groupToDelete,
                     showDeleteConfirm,
@@ -1027,6 +1095,7 @@
                     confirmDelete,
                     deleteGroup,
                     fetchImportantLinks,
+                    lockoutInterval,
                     createLink,
                     editLink,
                     updateLink,

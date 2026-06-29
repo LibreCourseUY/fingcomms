@@ -12,11 +12,15 @@ Key Features:
 - Static file serving for the Vue.js frontend
 """
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 import os
 import logging
@@ -29,7 +33,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from database import SessionLocal, AsyncSessionLocal, Group, ImportantLink, get_db
+from database import ENVIRONMENT, SessionLocal, AsyncSessionLocal, Group, ImportantLink, get_db
 
 # ============================================================================
 # APPLICATION SETUP
@@ -38,6 +42,14 @@ from database import SessionLocal, AsyncSessionLocal, Group, ImportantLink, get_
 app = FastAPI(root_path=os.getenv("ROOT_PATH", ""))
 
 logger = logging.getLogger(__name__)
+
+_metrics_client: httpx.AsyncClient | None = None
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    if _metrics_client is not None:
+        await _metrics_client.aclose()
 
 
 @app.middleware("http")
@@ -53,13 +65,20 @@ async def log_requests(request: Request, call_next):
 # ============================================================================
 
 # In production, use a strong password from environment variables
-# Default "admin123" is only for development/testing
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+_ADMIN_PASSWORD_ENV = os.getenv("ADMIN_PASSWORD")
+if _ADMIN_PASSWORD_ENV:
+    ADMIN_PASSWORD = _ADMIN_PASSWORD_ENV
+elif ENVIRONMENT == "PROD":
+    raise RuntimeError("ADMIN_PASSWORD environment variable is required when ENVIRONMENT=PROD")
+else:
+    ADMIN_PASSWORD = "admin123"
+    logger.warning("Using default admin password 'admin123'. Set ADMIN_PASSWORD env var for production.")
 
 # In-memory storage for admin sessions (tokens) and IP lockout data
 # Note: In production, consider using Redis or a database for session management
 lockout_data = {}
-admin_tokens = set()
+admin_tokens: dict[str, datetime] = {}
+TOKEN_EXPIRY_HOURS = 24
 
 
 def get_client_ip(request: Request) -> str:
@@ -74,30 +93,27 @@ def get_client_ip(request: Request) -> str:
 
 
 def verify_admin(request: Request):
-    """
-    Verify that the request comes from an authenticated admin.
-    Checks the Authorization header for a valid admin token.
-    Raises HTTP 401 if not authenticated.
-    """
     auth_header = request.headers.get("Authorization", "")
-    logger.debug("VERIFY_ADMIN - Authorization header: %s", auth_header)
     token = auth_header.replace("Bearer ", "").strip()
-    logger.debug("VERIFY_ADMIN - token: %s, admin_tokens: %s", token, admin_tokens)
-
-    if token not in admin_tokens:
+    expiry = admin_tokens.get(token)
+    if expiry is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
-
+    if datetime.now() > expiry:
+        del admin_tokens[token]
+        raise HTTPException(status_code=401, detail="Token expired")
     return True
 
 
 def verify_admin_origin(request: Request):
-    """
-    Additional security check: verify the request originated from the admin page.
-    This prevents CSRF attacks where external sites try to admin actions.
-    """
     referer = request.headers.get("Referer", "")
-    if "/admin" not in referer and "/admin.html" not in referer:
+    if referer and "/admin" not in referer and "/admin.html" not in referer:
         raise HTTPException(status_code=403, detail="Access denied")
+
+
+def verify_admin_dependency(request: Request):
+    verify_admin(request)
+    verify_admin_origin(request)
+    return True
 
 
 # ============================================================================
@@ -111,6 +127,8 @@ METRICS_VIEWS_URL = os.getenv(
     "METRICS_VIEWS_URL", "https://api.eclipselabs.com.uy/metrics/views"
 )
 METRICS_API_KEY = os.getenv("METRICS_API_KEY", "")
+
+_metrics_client = httpx.AsyncClient(timeout=10.0)
 
 
 class MetricsEvent(BaseModel):
@@ -223,16 +241,16 @@ def fuzzy_search(query: str, groups: List, threshold: float = 0.3):
 
 
 class GroupCreate(BaseModel):
-    name: str
-    description: str = ""
-    url: str = ""
+    name: str = Field(..., min_length=3, max_length=255)
+    description: str = Field("", max_length=500)
+    url: str = Field("", max_length=500)
 
 
 class GroupUpdate(BaseModel):
     id: int
-    name: str
-    description: str
-    url: str
+    name: str = Field(..., min_length=3, max_length=255)
+    description: str = Field("", max_length=500)
+    url: str = Field("", max_length=500)
 
 
 class PinGroup(BaseModel):
@@ -282,15 +300,7 @@ def group_to_dict(group: Group):
 
 
 @app.post("/api/groups")
-async def create_group(group: GroupCreate, request: Request, db: AsyncSession = Depends(get_db)):
-    """Create a new group. Requires admin authentication."""
-    verify_admin(request)
-
-    if len(group.name) < 3:
-        raise HTTPException(
-            status_code=400, detail="El nombre debe tener al menos 3 caracteres"
-        )
-
+async def create_group(group: GroupCreate, request: Request, db: AsyncSession = Depends(get_db), _=Depends(verify_admin_dependency)):
     new_group = Group(
         name=group.name, description=group.description, url=group.url, pinned=False
     )
@@ -301,10 +311,7 @@ async def create_group(group: GroupCreate, request: Request, db: AsyncSession = 
 
 
 @app.put("/api/groups")
-async def update_group(group: GroupUpdate, request: Request, db: AsyncSession = Depends(get_db)):
-    """Update an existing group. Requires admin authentication."""
-    verify_admin(request)
-
+async def update_group(group: GroupUpdate, request: Request, db: AsyncSession = Depends(get_db), _=Depends(verify_admin_dependency)):
     result = await db.execute(select(Group).filter(Group.id == group.id))
     db_group = result.scalar_one_or_none()
     if not db_group:
@@ -319,10 +326,7 @@ async def update_group(group: GroupUpdate, request: Request, db: AsyncSession = 
 
 
 @app.delete("/api/groups/{group_id}")
-async def delete_group(group_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    """Delete a group. Requires admin authentication."""
-    verify_admin(request)
-
+async def delete_group(group_id: int, request: Request, db: AsyncSession = Depends(get_db), _=Depends(verify_admin_dependency)):
     result = await db.execute(select(Group).filter(Group.id == group_id))
     db_group = result.scalar_one_or_none()
     if not db_group:
@@ -334,14 +338,7 @@ async def delete_group(group_id: int, request: Request, db: AsyncSession = Depen
 
 
 @app.post("/api/groups/pin")
-async def pin_group(pin_data: PinGroup, request: Request, db: AsyncSession = Depends(get_db)):
-    """
-    Pin or unpin a group.
-    Pinned groups appear at the top of the list.
-    Requires admin authentication.
-    """
-    verify_admin(request)
-
+async def pin_group(pin_data: PinGroup, request: Request, db: AsyncSession = Depends(get_db), _=Depends(verify_admin_dependency)):
     result = await db.execute(select(Group).filter(Group.id == pin_data.group_id))
     db_group = result.scalar_one_or_none()
     if not db_group:
@@ -360,17 +357,6 @@ async def pin_group(pin_data: PinGroup, request: Request, db: AsyncSession = Dep
 
 @app.post("/api/admin/login")
 def admin_login(login: AdminLogin, request: Request):
-    """
-    Admin login endpoint with IP-based lockout protection.
-
-    Security features:
-    - Password verification
-    - IP-based rate limiting (3 attempts max)
-    - 24-hour lockout after failed attempts
-    - Token-based session management
-    """
-    global lockout_data
-
     client_ip = get_client_ip(request)
 
     if client_ip not in lockout_data:
@@ -392,13 +378,11 @@ def admin_login(login: AdminLogin, request: Request):
             detail=detail,
         )
 
-    # Verify password
     if login.password == ADMIN_PASSWORD:
-        global admin_tokens
         lockout_data[client_ip] = {"attempts": 0, "locked_until": None}
         token = secrets.token_hex(32)
-        admin_tokens.add(token)
-        logger.debug("LOGIN SUCCESS - token added: %s", token)
+        admin_tokens[token] = datetime.now() + timedelta(hours=TOKEN_EXPIRY_HOURS)
+        logger.debug("LOGIN SUCCESS - token: %s...", token[:8])
         return {"success": True, "message": "Admin autenticado", "token": token}
 
     # Failed attempt - increment counter and lock if too many attempts
@@ -443,16 +427,16 @@ def admin_status(request: Request):
 
 
 class ImportantLinkCreate(BaseModel):
-    title: str
-    description: str = ""
-    url: str
+    title: str = Field(..., min_length=3, max_length=255)
+    description: str = Field("", max_length=500)
+    url: str = Field(..., max_length=500)
 
 
 class ImportantLinkUpdate(BaseModel):
     id: int
-    title: str
-    description: str
-    url: str
+    title: str = Field(..., min_length=3, max_length=255)
+    description: str = Field("", max_length=500)
+    url: str = Field(..., max_length=500)
 
 
 def link_to_dict(link: ImportantLink):
@@ -476,18 +460,8 @@ async def get_important_links(db: AsyncSession = Depends(get_db)):
 
 @app.post("/api/important-links")
 async def create_important_link(
-    link: ImportantLinkCreate, request: Request, db: AsyncSession = Depends(get_db)
+    link: ImportantLinkCreate, request: Request, db: AsyncSession = Depends(get_db), _=Depends(verify_admin_dependency)
 ):
-    """Create a new important link. Requires admin authentication."""
-    verify_admin(request)
-
-    if len(link.title) < 3:
-        raise HTTPException(
-            status_code=400, detail="El título debe tener al menos 3 caracteres"
-        )
-    if not link.url:
-        raise HTTPException(status_code=400, detail="La URL es requerida")
-
     new_link = ImportantLink(
         title=link.title, description=link.description, url=link.url
     )
@@ -499,11 +473,8 @@ async def create_important_link(
 
 @app.put("/api/important-links")
 async def update_important_link(
-    link: ImportantLinkUpdate, request: Request, db: AsyncSession = Depends(get_db)
+    link: ImportantLinkUpdate, request: Request, db: AsyncSession = Depends(get_db), _=Depends(verify_admin_dependency)
 ):
-    """Update an existing important link. Requires admin authentication."""
-    verify_admin(request)
-
     result = await db.execute(select(ImportantLink).filter(ImportantLink.id == link.id))
     db_link = result.scalar_one_or_none()
     if not db_link:
@@ -519,11 +490,8 @@ async def update_important_link(
 
 @app.delete("/api/important-links/{link_id}")
 async def delete_important_link(
-    link_id: int, request: Request, db: AsyncSession = Depends(get_db)
+    link_id: int, request: Request, db: AsyncSession = Depends(get_db), _=Depends(verify_admin_dependency)
 ):
-    """Delete an important link. Requires admin authentication."""
-    verify_admin(request)
-
     result = await db.execute(select(ImportantLink).filter(ImportantLink.id == link_id))
     db_link = result.scalar_one_or_none()
     if not db_link:
@@ -541,20 +509,18 @@ async def delete_important_link(
 
 @app.post("/api/metrics/event")
 async def track_event(event: MetricsEvent):
-    """Track click events by forwarding to the metrics API."""
     if not METRICS_API_KEY:
         return {"status": "skipped", "reason": "Metrics not configured"}
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                METRICS_EVENTS_URL,
-                json={"event_type": event.event_type, "metadata": event.metadata or {}},
-                headers={"X-API-Key": METRICS_API_KEY},
-            )
-            if response.status_code == 200:
-                return {"status": "ok"}
-            return {"status": "error", "detail": response.text}
+        response = await _metrics_client.post(
+            METRICS_EVENTS_URL,
+            json={"event_type": event.event_type, "metadata": event.metadata or {}},
+            headers={"X-API-Key": METRICS_API_KEY},
+        )
+        if response.status_code == 200:
+            return {"status": "ok"}
+        return {"status": "error", "detail": response.text}
     except Exception as e:
         logger.error(f"Metrics tracking failed: {e}")
         return {"status": "error", "detail": str(e)}
@@ -562,20 +528,18 @@ async def track_event(event: MetricsEvent):
 
 @app.post("/api/metrics/views")
 async def track_view(view: ViewEvent):
-    """Track page views by forwarding to the metrics API."""
     if not METRICS_API_KEY:
         return {"status": "skipped", "reason": "Metrics not configured"}
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                METRICS_VIEWS_URL,
-                json=view.model_dump(exclude_none=True),
-                headers={"X-API-Key": METRICS_API_KEY},
-            )
-            if response.status_code == 200:
-                return {"status": "ok"}
-            return {"status": "error", "detail": response.text}
+        response = await _metrics_client.post(
+            METRICS_VIEWS_URL,
+            json=view.model_dump(exclude_none=True),
+            headers={"X-API-Key": METRICS_API_KEY},
+        )
+        if response.status_code == 200:
+            return {"status": "ok"}
+        return {"status": "error", "detail": response.text}
     except Exception as e:
         logger.error(f"View tracking failed: {e}")
         return {"status": "error", "detail": str(e)}
@@ -609,7 +573,7 @@ def serve_catch_all(path: str):
     logger.debug("CATCH-ALL REQUEST - path: %s, root_path: %s", path, app.root_path)
 
     # Security: prevent directory traversal
-    if ".." in path:
+    if ".." in path or path.startswith("/") or "\x00" in path:
         raise HTTPException(status_code=404, detail="Not found")
 
     # Don't serve API routes through SPA handler
@@ -620,10 +584,6 @@ def serve_catch_all(path: str):
     if path.endswith("favicon.svg") or "favicon.svg" in path:
         logger.debug("FAVICON MATCH in catch-all!")
         return FileResponse("static/favicon.svg", media_type="image/svg+xml")
-
-    # Serve static files directly
-    if path.startswith("static/"):
-        return FileResponse(path)
 
     # Admin routes
     if path == "admin" or path.startswith("admin/"):

@@ -20,17 +20,15 @@ import os
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "DEV")
 
+_db_url = os.getenv("DATABASE_URL")
 if ENVIRONMENT == "PROD":
-    _db_url = os.getenv("DATABASE_URL")
     if not _db_url:
         raise RuntimeError("DATABASE_URL is required when ENVIRONMENT=PROD")
-    # Sync URL for dbwarden migrations
     _sync_db_url = _db_url.replace("postgresql+asyncpg://", "postgresql://", 1)
-    # Async URL for the app
     DATABASE_URL = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 else:
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./groups.db")
-    _sync_db_url = DATABASE_URL
+    DATABASE_URL = _db_url if _db_url else "sqlite+aiosqlite:///./groups.db"
+    _sync_db_url = DATABASE_URL.replace("sqlite+aiosqlite:///", "sqlite:///", 1)
 
 from dbwarden import database_config
 
@@ -38,19 +36,17 @@ database_config(
     database_name="primary",
     default=True,
     database_type="postgresql" if ENVIRONMENT == "PROD" else "sqlite",
-    database_url=_sync_db_url,
+    database_url_sync=_sync_db_url,
     dev_database_type="sqlite",
     dev_database_url="sqlite:///./groups.db",
     migrations_dir="migrations",
 )
 
-if ENVIRONMENT == "PROD":
-    engine = create_async_engine(DATABASE_URL, echo=False, future=True)
-    AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
-else:
-    engine = create_engine(DATABASE_URL, echo=False, future=True)
+engine = create_async_engine(DATABASE_URL, echo=False, future=True)
+AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
-SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
+_sync_engine = create_engine(_sync_db_url, echo=False, future=True)
+SessionLocal = sessionmaker(bind=_sync_engine, expire_on_commit=False)
 
 
 # ============================================================================
@@ -118,18 +114,8 @@ class ImportantLink(Base):
 
 
 async def get_db():
-    """
-    FastAPI dependency that provides an async database session for each request.
-    """
-    if ENVIRONMENT == "PROD":
-        async with AsyncSessionLocal() as session:
-            try:
-                yield session
-            finally:
-                await session.close()
-    else:
-        db = SessionLocal()
+    async with AsyncSessionLocal() as session:
         try:
-            yield db
+            yield session
         finally:
-            db.close()
+            await session.close()
