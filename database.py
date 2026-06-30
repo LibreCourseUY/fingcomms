@@ -11,7 +11,7 @@ Key Concepts:
 - The database URL can be changed via DATABASE_URL environment variable
 """
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase, relationship
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Table, ForeignKey
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -121,6 +121,25 @@ class Tag(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), nullable=False, unique=True)
     created_at = Column(DateTime, default=datetime.now)
+
+
+# Ensure IDs are set when SERIAL doesn't auto-increment (SQLite)
+@event.listens_for(Group, "before_insert", propagate=True)
+def _group_before_insert(mapper, connection, target):
+    if target.id is None:
+        result = connection.execute(
+            text("SELECT COALESCE(MAX(id), 0) + 1 FROM groups")
+        )
+        target.id = result.scalar()
+
+
+@event.listens_for(Tag, "before_insert", propagate=True)
+def _tag_before_insert(mapper, connection, target):
+    if target.id is None:
+        result = connection.execute(
+            text("SELECT COALESCE(MAX(id), 0) + 1 FROM tags")
+        )
+        target.id = result.scalar()
 
 
 # ============================================================================
