@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Fingcomms</title>
+    <title>Admin - NexoComms</title>
     <link rel="icon" id="favicon" type="image/svg+xml">
     <script>
         const basePath = window.location.pathname.split('/').slice(0, -1).join('/') || '';
@@ -421,11 +421,255 @@
             flex: 1;
         }
 
+        .group-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .group-tag-badge {
+            display: inline-flex;
+            padding: 2px 8px;
+            background-color: rgba(149, 125, 205, 0.15);
+            border: 1px solid rgba(149, 125, 205, 0.3);
+            border-radius: 10px;
+            color: #957dcd;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .tag-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag-option {
+            padding: 8px 16px;
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 100px;
+            color: #8b949e;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            line-height: 1.2;
+        }
+
+        .tag-option:hover {
+            border-color: #957dcd;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .tag-option:active {
+            transform: scale(0.96);
+        }
+
+        .tag-option.selected {
+            background: linear-gradient(135deg, rgba(149, 125, 205, 0.25), rgba(149, 125, 205, 0.1));
+            border-color: #957dcd;
+            color: #957dcd;
+            box-shadow: 0 0 16px rgba(149, 125, 205, 0.12);
+        }
+
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
                 animation-duration: 0.01ms !important;
                 animation-iteration-count: 1 !important;
                 transition-duration: 0.01ms !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 0 12px;
+                height: 56px;
+            }
+
+            .logo {
+                font-size: 16px;
+                gap: 8px;
+            }
+
+            .main-content {
+                padding-left: 12px;
+                padding-right: 12px;
+                padding-top: 76px;
+                max-width: 100%;
+            }
+
+            .login-container {
+                margin: 60px 12px;
+                padding: 24px 20px;
+            }
+
+            .nav-tabs {
+                gap: 6px;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 4px;
+            }
+
+            .nav-tab {
+                padding: 10px 14px;
+                font-size: 13px;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .panel-section {
+                padding: 16px;
+            }
+
+            .panel-title {
+                font-size: 16px;
+            }
+
+            .group-list-item {
+                padding: 12px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .group-list-name {
+                font-size: 14px;
+            }
+
+            .group-list-desc {
+                font-size: 12px;
+            }
+
+            .group-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .action-btn {
+                padding: 8px 12px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .pin-toggle {
+                padding: 8px 14px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+
+            .btn {
+                padding: 14px;
+                font-size: 14px;
+                min-height: 48px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .form-input {
+                font-size: 16px;
+                padding: 12px 14px;
+                min-height: 48px;
+            }
+
+            .tag-selector {
+                gap: 6px;
+            }
+
+            .tag-option {
+                padding: 8px 14px;
+                font-size: 12px;
+                min-height: 40px;
+            }
+
+            .modal {
+                padding: 24px;
+                width: 95%;
+                max-width: 360px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 0 10px;
+                height: 52px;
+            }
+
+            .logo {
+                font-size: 14px;
+                gap: 6px;
+            }
+
+            .main-content {
+                padding-left: 10px;
+                padding-right: 10px;
+                padding-top: 68px;
+            }
+
+            .panel-section {
+                padding: 12px;
+            }
+
+            .nav-tab {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .tag-option {
+                font-size: 11px;
+                padding: 6px 12px;
+                min-height: 36px;
+            }
+
+            .form-input {
+                font-size: 16px;
+                padding: 10px 12px;
+                min-height: 44px;
+            }
+
+            .btn {
+                padding: 12px;
+                min-height: 44px;
+                font-size: 13px;
+            }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .tag-option:hover {
+                border-color: #30363d;
+                color: #8b949e;
+                transform: none;
+            }
+
+            .tag-option.selected:hover {
+                border-color: #957dcd;
+                color: #957dcd;
+                transform: none;
+            }
+
+            .action-btn:hover {
+                border-color: #30363d;
+                color: #8b949e;
+            }
+
+            .pin-toggle:hover {
+                border-color: #30363d;
+                color: #8b949e;
+            }
+
+            .group-list-item:hover {
+                background-color: #161b22;
             }
         }
     </style>
@@ -435,7 +679,7 @@
         <header class="header">
             <div class="logo">
                 <i class="fas fa-users logo-icon"></i>
-                Admin Panel - Fingcomms
+                Admin Panel - NexoComms
             </div>
             <div style="display: flex; gap: 10px; align-items: center;">
                 <a :href="baseUrl || '/'" style="color: #8b949e; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px;">
@@ -489,6 +733,9 @@
                     <button class="nav-tab" :class="{ active: activeTab === 'links' }" @click="activeTab = 'links'">
                         <i class="fas fa-link"></i> Links
                     </button>
+                    <button class="nav-tab" :class="{ active: activeTab === 'tags' }" @click="activeTab = 'tags'; fetchTags()">
+                        <i class="fas fa-tags"></i> Tags
+                    </button>
                     <button class="nav-tab" :class="{ active: activeTab === 'create' }" @click="activeTab = 'create'">
                         <i class="fas fa-plus"></i> Crear
                     </button>
@@ -511,6 +758,9 @@
                                 <div class="group-list-name">{{ group.name }}</div>
                                 <div class="group-list-desc">{{ group.description }}</div>
                                 <div class="group-list-url" v-if="group.url">{{ group.url }}</div>
+                                <div class="group-tags" v-if="group.tags && group.tags.length">
+                                    <span class="group-tag-badge" v-for="tag in group.tags" :key="tag.id">{{ tag.name }}</span>
+                                </div>
                             </div>
                             <div class="group-actions">
                                 <button 
@@ -566,6 +816,20 @@
                                 v-model="newGroup.url"
                                 autocomplete="url"
                             >
+                        </div>
+                        <div class="form-group" v-if="tags.length">
+                            <label class="form-label">Tags</label>
+                            <div class="tag-selector">
+                                <button 
+                                    v-for="tag in tags" 
+                                    :key="tag.id"
+                                    class="tag-option"
+                                    :class="{ selected: selectedTagIds.includes(tag.id) }"
+                                    @click="toggleTagSelection(tag.id)"
+                                >
+                                    {{ tag.name }}
+                                </button>
+                            </div>
                         </div>
                         <div class="form-actions">
                             <button class="btn btn-secondary" @click="cancelEdit" v-if="editingGroup">
@@ -624,6 +888,32 @@
                 </div>
             </div>
 
+                <div class="panel-section" v-if="activeTab === 'tags'">
+                    <h3 class="panel-title">Administrar Tags</h3>
+                    <div class="groups-list">
+                        <div class="group-list-item" v-for="tag in tags" :key="tag.id">
+                            <div class="group-list-info">
+                                <div class="group-list-name">{{ tag.name }}</div>
+                            </div>
+                            <div class="group-actions">
+                                <button class="action-btn delete-btn" @click="deleteTag(tag)" title="Eliminar" aria-label="Eliminar tag">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #30363d;">
+                        <h4 style="font-size: 14px; color: #8b949e; margin-bottom: 12px;">Nuevo Tag</h4>
+                        <div style="display: flex; gap: 12px;">
+                            <input type="text" class="form-input" style="flex: 1;" placeholder="Nombre del tag" v-model="newTagName" @keyup.enter="createTag" maxlength="50">
+                            <button class="btn btn-primary" style="flex: 0 0 auto; padding: 12px 24px; width: auto;" @click="createTag">Agregar</button>
+                        </div>
+                        <div class="error-container">
+                            <p class="error-text" v-if="tagError">{{ tagError }}</p>
+                        </div>
+                    </div>
+                </div>
+
             <div class="modal-overlay" v-if="showDeleteConfirm">
                 <div class="modal">
                     <h3 class="modal-title">Confirmar Eliminación</h3>
@@ -676,6 +966,10 @@
                 const groupToDelete = ref(null);
                 const showDeleteConfirm = ref(false);
                 const importantLinks = ref([]);
+                const tags = ref([]);
+                const selectedTagIds = ref([]);
+                const newTagName = ref('');
+                const tagError = ref('');
                 const editingLink = ref(null);
                 const linkToDelete = ref(null);
                 const showDeleteLinkConfirm = ref(false);
@@ -825,6 +1119,31 @@
                     }
                 };
 
+                const syncGroupTags = async (groupId, selectedIds) => {
+                    try {
+                        const response = await fetch(apiUrl(`/api/groups/${groupId}`));
+                        const group = await response.json();
+                        const currentIds = (group.tags || []).map(t => t.id);
+                        const toAdd = selectedIds.filter(id => !currentIds.includes(id));
+                        const toRemove = currentIds.filter(id => !selectedIds.includes(id));
+                        for (const tagId of toAdd) {
+                            await fetch(apiUrl(`/api/groups/${groupId}/tags`), {
+                                method: 'POST',
+                                headers: authHeaders(),
+                                body: JSON.stringify({ tag_id: tagId })
+                            });
+                        }
+                        for (const tagId of toRemove) {
+                            await fetch(apiUrl(`/api/groups/${groupId}/tags/${tagId}`), {
+                                method: 'DELETE',
+                                headers: authHeaders()
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Tag sync error:', e);
+                    }
+                };
+
                 const createGroup = async () => {
                     if (newGroup.value.name.length < 3) {
                         showToastMessage('El nombre debe tener al menos 3 caracteres', 'error');
@@ -841,8 +1160,14 @@
                         if (response.ok) {
                             const group = await response.json();
                             groups.value.unshift(group);
+                            if (selectedTagIds.value.length) {
+                                await syncGroupTags(group.id, selectedTagIds.value);
+                                await fetchGroups();
+                            }
                             showToastMessage('Grupo creado exitosamente');
                             newGroup.value = { name: '', description: '', url: '' };
+                            selectedTagIds.value = [];
+                            activeTab.value = 'manage';
                         } else {
                             const data = await response.json();
                             showToastMessage(data.detail || 'Error al crear grupo', 'error');
@@ -859,6 +1184,7 @@
                         description: group.description,
                         url: group.url || ''
                     };
+                    selectedTagIds.value = (group.tags || []).map(t => t.id);
                     activeTab.value = 'create';
                 };
 
@@ -881,11 +1207,13 @@
                         });
 
                         if (response.ok) {
+                            await syncGroupTags(editingGroup.value.id, selectedTagIds.value);
                             const updated = await response.json();
                             const idx = groups.value.findIndex(g => g.id === updated.group.id);
                             if (idx !== -1) {
                                 groups.value[idx] = updated.group;
                             }
+                            await fetchGroups();
                             showToastMessage('Grupo actualizado');
                             cancelEdit();
                         } else {
@@ -900,6 +1228,7 @@
                 const cancelEdit = () => {
                     editingGroup.value = null;
                     newGroup.value = { name: '', description: '', url: '' };
+                    selectedTagIds.value = [];
                     activeTab.value = 'manage';
                 };
 
@@ -1050,9 +1379,73 @@
                     linkToDelete.value = null;
                 };
 
+                const toggleTagSelection = (tagId) => {
+                    const idx = selectedTagIds.value.indexOf(tagId);
+                    if (idx === -1) {
+                        selectedTagIds.value.push(tagId);
+                    } else {
+                        selectedTagIds.value.splice(idx, 1);
+                    }
+                };
+
+                const fetchTags = async () => {
+                    try {
+                        const response = await fetch(apiUrl('/api/tags'));
+                        tags.value = await response.json();
+                    } catch (e) {
+                        console.error(e);
+                    }
+                };
+
+                const createTag = async () => {
+                    tagError.value = '';
+                    const name = newTagName.value.trim();
+                    if (!name) {
+                        tagError.value = 'El nombre no puede estar vacío';
+                        return;
+                    }
+                    try {
+                        const response = await fetch(apiUrl('/api/tags'), {
+                            method: 'POST',
+                            headers: authHeaders(),
+                            body: JSON.stringify({ name })
+                        });
+                        if (response.ok) {
+                            const tag = await response.json();
+                            tags.value.push(tag);
+                            newTagName.value = '';
+                            showToastMessage('Tag creado');
+                        } else {
+                            const data = await response.json();
+                            tagError.value = data.detail || 'Error al crear tag';
+                        }
+                    } catch (e) {
+                        tagError.value = 'Error de conexión';
+                    }
+                };
+
+                const deleteTag = async (tag) => {
+                    try {
+                        const response = await fetch(apiUrl(`/api/tags/${tag.id}`), {
+                            method: 'DELETE',
+                            headers: authHeaders()
+                        });
+                        if (response.ok) {
+                            tags.value = tags.value.filter(t => t.id !== tag.id);
+                            showToastMessage('Tag eliminado');
+                        } else {
+                            const data = await response.json();
+                            showToastMessage(data.detail || 'Error al eliminar', 'error');
+                        }
+                    } catch (e) {
+                        showToastMessage('Error de conexión', 'error');
+                    }
+                };
+
                 onMounted(() => {
                     checkLockout();
                     fetchImportantLinks();
+                    fetchTags();
                 });
 
                 onUnmounted(() => {
@@ -1080,6 +1473,10 @@
                     groupToDelete,
                     showDeleteConfirm,
                     importantLinks,
+                    tags,
+                    selectedTagIds,
+                    newTagName,
+                    tagError,
                     newLink,
                     editingLink,
                     linkToDelete,
@@ -1095,6 +1492,10 @@
                     confirmDelete,
                     deleteGroup,
                     fetchImportantLinks,
+                    toggleTagSelection,
+                    fetchTags,
+                    createTag,
+                    deleteTag,
                     lockoutInterval,
                     createLink,
                     editLink,

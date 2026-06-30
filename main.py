@@ -1,7 +1,7 @@
 """
-Fingcomms - Main Application Entry Point
+NexoComms - Main Application Entry Point
 
-This file contains the FastAPI application that powers the Fingcomms group directory.
+This file contains the FastAPI application that powers the NexoComms group directory.
 It handles HTTP requests, manages the admin authentication system, and provides
 the fuzzy search functionality for finding groups.
 
@@ -32,8 +32,9 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
-from database import ENVIRONMENT, SessionLocal, AsyncSessionLocal, Group, ImportantLink, get_db
+from database import ENVIRONMENT, SessionLocal, AsyncSessionLocal, Group, ImportantLink, Tag, get_db
 
 # ============================================================================
 # APPLICATION SETUP
@@ -262,20 +263,34 @@ class AdminLogin(BaseModel):
     password: str
 
 
+class TagCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+
+
+class GroupTagAction(BaseModel):
+    tag_id: int
+
+
 # ============================================================================
 # API Endpoints - Groups
 # ============================================================================
 
 
 @app.get("/api/groups")
-async def get_groups(q: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+async def get_groups(q: Optional[str] = None, tag: Optional[str] = None, db: AsyncSession = Depends(get_db)):
     """
-    Get all groups, optionally filtered by search query.
+    Get all groups, optionally filtered by search query or tag.
 
     If 'q' parameter is provided, uses fuzzy search to find matching groups.
+    If 'tag' parameter is provided, filters to groups that have the given tag.
     Otherwise, returns all groups with pinned groups appearing first.
     """
-    result = await db.execute(select(Group))
+    query = select(Group).options(selectinload(Group.tags))
+    if tag:
+        tag_list = [t.strip() for t in tag.split(",") if t.strip()]
+        if tag_list:
+            query = query.filter(Group.tags.any(Tag.name.in_(tag_list)))
+    result = await db.execute(query)
     groups = result.scalars().all()
 
     if q and q.strip():
@@ -296,6 +311,7 @@ def group_to_dict(group: Group):
         "url": group.url,
         "pinned": group.pinned,
         "created_at": group.created_at.isoformat() if group.created_at else None,
+        "tags": [{"id": t.id, "name": t.name} for t in group.tags],
     }
 
 
@@ -335,6 +351,15 @@ async def delete_group(group_id: int, request: Request, db: AsyncSession = Depen
     await db.delete(db_group)
     await db.commit()
     return {"success": True}
+
+
+@app.get("/api/groups/{group_id}")
+async def get_group(group_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Group).options(selectinload(Group.tags)).filter(Group.id == group_id))
+    group = result.scalar_one_or_none()
+    if not group:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+    return group_to_dict(group)
 
 
 @app.post("/api/groups/pin")
@@ -419,6 +444,73 @@ def admin_status(request: Request):
         return {"locked": False, "attempts": ip_data["attempts"]}
 
     return {"locked": False, "attempts": 0}
+
+
+# ============================================================================
+# API Endpoints - Tags
+# ============================================================================
+
+
+@app.get("/api/tags")
+async def get_tags(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Tag).order_by(Tag.name))
+    tags = result.scalars().all()
+    return [{"id": t.id, "name": t.name, "created_at": t.created_at.isoformat() if t.created_at else None} for t in tags]
+
+
+@app.post("/api/tags")
+async def create_tag(tag: TagCreate, request: Request, db: AsyncSession = Depends(get_db), _=Depends(verify_admin_dependency)):
+    existing = await db.execute(select(Tag).filter(Tag.name == tag.name))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Tag ya existe")
+    new_tag = Tag(name=tag.name)
+    db.add(new_tag)
+    await db.commit()
+    await db.refresh(new_tag)
+    return {"id": new_tag.id, "name": new_tag.name}
+
+
+@app.delete("/api/tags/{tag_id}")
+async def delete_tag(tag_id: int, request: Request, db: AsyncSession = Depends(get_db), _=Depends(verify_admin_dependency)):
+    result = await db.execute(select(Tag).filter(Tag.id == tag_id))
+    tag = result.scalar_one_or_none()
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag no encontrado")
+    await db.delete(tag)
+    await db.commit()
+    return {"success": True}
+
+
+@app.post("/api/groups/{group_id}/tags")
+async def add_group_tag(group_id: int, action: GroupTagAction, request: Request, db: AsyncSession = Depends(get_db), _=Depends(verify_admin_dependency)):
+    result = await db.execute(select(Group).options(selectinload(Group.tags)).filter(Group.id == group_id))
+    group = result.scalar_one_or_none()
+    if not group:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+    result = await db.execute(select(Tag).filter(Tag.id == action.tag_id))
+    tag = result.scalar_one_or_none()
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag no encontrado")
+    if tag not in group.tags:
+        group.tags.append(tag)
+        await db.commit()
+    return {"success": True}
+
+
+@app.delete("/api/groups/{group_id}/tags/{tag_id}")
+async def remove_group_tag(group_id: int, tag_id: int, request: Request, db: AsyncSession = Depends(get_db), _=Depends(verify_admin_dependency)):
+    result = await db.execute(select(Group).options(selectinload(Group.tags)).filter(Group.id == group_id))
+    group = result.scalar_one_or_none()
+    if not group:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+    result = await db.execute(select(Tag).filter(Tag.id == tag_id))
+    tag = result.scalar_one_or_none()
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag no encontrado")
+    if tag in group.tags:
+        group.tags.remove(tag)
+        await db.commit()
+    return {"success": True}
 
 
 # ============================================================================

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fingcomms</title>
+    <title>NexoComms</title>
     <link rel="icon" id="favicon" type="image/svg+xml">
     <script>
         const basePath = window.location.pathname.split('/').slice(0, -1).join('/') || '';
@@ -27,6 +27,13 @@
             background-color: #161b22;
             color: #ffffff;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overscroll-behavior: contain;
+        }
+
+        html {
+            scroll-behavior: smooth;
         }
 
         #app {
@@ -289,7 +296,17 @@
         .groups-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
 
         @keyframes cardFadeIn {
-            from { opacity: 0; transform: translateY(16px); }
+            from { opacity: 0; transform: translateY(12px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200px 0; }
+            100% { background-position: calc(200px + 100%) 0; }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -297,7 +314,7 @@
             background-color: #2d333b;
             border-radius: 16px;
             padding: 16px 20px;
-            transition: all 0.3s ease;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
             border: 1px solid #3d444d;
             border-left: 3px solid #957dcd;
             display: flex;
@@ -305,16 +322,56 @@
             min-height: 120px;
             width: 100%;
             box-sizing: border-box;
-            animation: cardFadeIn 0.4s ease both;
+            animation: cardFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
             cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         .group-card:hover {
             background-color: #373e47;
-            transform: translateY(-4px);
+            transform: translateY(-3px);
             border-color: #545d68;
             border-left-color: #a388f0;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .group-card:active {
+            transform: scale(0.98);
+        }
+
+        .skeleton-card {
+            background-color: #2d333b;
+            border-radius: 16px;
+            padding: 16px 20px;
+            border: 1px solid #3d444d;
+            border-left: 3px solid #3d444d;
+            min-height: 120px;
+            animation: cardFadeIn 0.35s ease both;
+        }
+
+        .skeleton-line {
+            height: 14px;
+            border-radius: 8px;
+            background: linear-gradient(90deg, #21262d 25%, #30363d 50%, #21262d 75%);
+            background-size: 200px 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+            margin-bottom: 10px;
+        }
+
+        .skeleton-line:first-child {
+            width: 60%;
+            height: 16px;
+        }
+
+        .skeleton-line:nth-child(2) {
+            width: 85%;
+        }
+
+        .skeleton-line:nth-child(3) {
+            width: 45%;
+            margin-bottom: 0;
         }
 
         .group-card .card-content {
@@ -348,33 +405,42 @@
 
         .join-btn {
             width: 100%;
-            padding: 8px 12px;
+            padding: 10px 12px;
             background-color: #957dcd;
             color: #ffffff;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
             text-decoration: none;
             text-align: center;
             white-space: nowrap;
             display: block;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .join-btn:hover {
             background-color: #a88de0;
+            box-shadow: 0 2px 12px rgba(149, 125, 205, 0.3);
         }
 
         .join-btn:active {
-            transform: scale(0.98);
+            transform: scale(0.97);
         }
 
         .no-results {
             text-align: center;
             padding: 60px 20px;
             color: #8b949e;
+            animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
         .no-results-icon {
@@ -669,6 +735,89 @@
             background: #545d68;
         }
 
+        @keyframes tagFadeIn {
+            from { opacity: 0; transform: translateY(8px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes badgePopIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .tag-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 24px;
+            padding: 0 4px;
+            min-height: 44px;
+        }
+
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 18px;
+            background-color: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 100px;
+            color: #8b949e;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: tagFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            min-height: 44px;
+            line-height: 1.2;
+        }
+
+        .tag-chip:hover {
+            border-color: #a388f3;
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 12px rgba(163, 136, 243, 0.15);
+        }
+
+        .tag-chip:active {
+            transform: scale(0.96);
+        }
+
+        .tag-chip.active {
+            background: linear-gradient(135deg, rgba(163, 136, 243, 0.25), rgba(163, 136, 243, 0.1));
+            border-color: #a388f3;
+            color: #a388f3;
+            box-shadow: 0 0 20px rgba(163, 136, 243, 0.15);
+        }
+
+        .tag-chip.active:hover {
+            box-shadow: 0 2px 24px rgba(163, 136, 243, 0.25);
+        }
+
+        .group-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .group-tag-badge {
+            display: inline-flex;
+            padding: 3px 10px;
+            background-color: rgba(163, 136, 243, 0.15);
+            border: 1px solid rgba(163, 136, 243, 0.3);
+            border-radius: 100px;
+            color: #a388f3;
+            font-size: 11px;
+            font-weight: 500;
+            animation: badgePopIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+            line-height: 1.3;
+        }
+
         .manage-btn {
             background-color: #30363d;
             color: #ffffff;
@@ -744,23 +893,117 @@
                 animation-iteration-count: 1 !important;
                 transition-duration: 0.01ms !important;
             }
+
+            .skeleton-line {
+                animation: none !important;
+            }
         }
 
         @media (max-width: 768px) {
             .header {
-                padding: 0 16px;
+                padding: 0 12px;
+                height: 56px;
+            }
+
+            .logo {
+                font-size: 17px;
+                gap: 8px;
+            }
+
+            .logo-icon {
+                font-size: 18px;
+            }
+
+            .icon-link {
+                font-size: 20px;
+            }
+
+            .create-btn {
+                padding: 8px 14px;
+                font-size: 13px;
             }
 
             .main-content {
-                padding-left: 16px;
-                padding-right: 16px;
-                padding-top: 80px;
+                padding-left: 12px;
+                padding-right: 12px;
+                padding-top: 76px;
+            }
+
+            .important-links-section {
+                margin-bottom: 24px;
+            }
+
+            .important-links-grid {
+                padding: 0 0 8px;
+                gap: 10px;
             }
 
             .important-links-grid.cols-1,
             .important-links-grid.cols-2,
             .important-links-grid.cols-3 {
                 grid-template-columns: 1fr;
+            }
+
+            .important-link-card {
+                min-height: auto;
+                padding: 12px 14px;
+            }
+
+            .important-link-title {
+                font-size: 14px;
+            }
+
+            .important-link-description {
+                font-size: 12px;
+            }
+
+            .important-link-btn {
+                padding: 10px;
+                font-size: 13px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .search-container {
+                margin: 0 0 24px;
+                max-width: 100%;
+            }
+
+            .search-input {
+                padding: 14px 40px;
+                font-size: 16px;
+                border-radius: 10px;
+            }
+
+            .search-icon {
+                left: 12px;
+                font-size: 16px;
+            }
+
+            .search-clear {
+                right: 10px;
+                font-size: 16px;
+                min-width: 36px;
+                min-height: 36px;
+            }
+
+            .tag-filters {
+                gap: 6px;
+                padding: 0;
+                margin-bottom: 16px;
+            }
+
+            .tag-chip {
+                padding: 8px 14px;
+                font-size: 13px;
+                min-height: 40px;
+            }
+
+            .groups-grid {
+                padding: 0 0 16px;
+                gap: 10px;
             }
 
             .groups-grid.cols-1,
@@ -772,12 +1015,126 @@
 
             .group-card {
                 min-height: auto;
-                padding: 12px 16px;
+                padding: 14px 16px;
+                border-left-width: 3px;
             }
 
-            .important-link-card {
-                min-height: auto;
-                padding: 12px 16px;
+            .group-name {
+                font-size: 15px;
+            }
+
+            .group-description {
+                font-size: 12px;
+                -webkit-line-clamp: 3;
+                line-clamp: 3;
+            }
+
+            .group-tags {
+                margin-top: 6px;
+                gap: 3px;
+            }
+
+            .group-tag-badge {
+                font-size: 10px;
+                padding: 2px 8px;
+            }
+
+            .join-btn {
+                padding: 10px 12px;
+                font-size: 13px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .header-actions {
+                gap: 8px;
+            }
+
+            .search-results-count {
+                font-size: 12px;
+                margin-top: -10px;
+                margin-bottom: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 0 10px;
+                height: 52px;
+            }
+
+            .main-content {
+                padding-left: 10px;
+                padding-right: 10px;
+                padding-top: 68px;
+            }
+
+            .logo {
+                font-size: 15px;
+                gap: 6px;
+            }
+
+            .create-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .tag-chip {
+                padding: 6px 12px;
+                font-size: 12px;
+                min-height: 36px;
+            }
+
+            .group-card {
+                padding: 12px 14px;
+                border-radius: 12px;
+            }
+
+            .join-btn {
+                padding: 10px 12px;
+                min-height: 44px;
+            }
+
+            .search-input {
+                font-size: 16px;
+                padding: 12px 36px;
+            }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .tag-chip:hover {
+                border-color: #30363d;
+                color: #8b949e;
+                transform: none;
+                box-shadow: none;
+            }
+
+            .tag-chip.active:hover {
+                border-color: #a388f3;
+                color: #a388f3;
+                box-shadow: 0 0 20px rgba(163, 136, 243, 0.15);
+            }
+
+            .group-card:hover {
+                transform: none;
+                box-shadow: none;
+            }
+
+            .join-btn:hover {
+                background-color: #957dcd;
+            }
+
+            .important-link-card:hover {
+                transform: none;
+                border-color: rgba(149, 125, 205, 0.3);
+                box-shadow: none;
+            }
+
+            .important-link-btn:hover {
+                background-color: transparent;
+                color: #957dcd;
             }
         }
     </style>
@@ -788,8 +1145,8 @@
             <div class="disclaimer-modal">
                 <h2 class="disclaimer-title">Aviso</h2>
                 <div class="disclaimer-body">
-                    <p>LibrecourseUY es un proyecto de software open source, independiente y comunitario. Las herramientas, funcionalidades y recursos disponibles en esta plataforma (incluyendo "FingComms") fueron creados y mantenidos por miembros, contribuidores y colaboradores de LibrecourseUY.</p>
-                    <p>La herramienta "FingComms" no está afiliada, asociada, patrocinada, avalada, autorizada ni respaldada por ninguna institución educativa u organización, incluyendo (sin limitarse a) la Universidad de la República (UdelaR) y la Facultad de Ingeniería (FING), ni por cátedras, docentes, unidades académicas o dependencias administrativas.</p>
+                    <p>LibrecourseUY es un proyecto de software open source, independiente y comunitario. Las herramientas, funcionalidades y recursos disponibles en esta plataforma (incluyendo "NexoComms") fueron creados y mantenidos por miembros, contribuidores y colaboradores de LibrecourseUY.</p>
+                    <p>La herramienta "NexoComms" no está afiliada, asociada, patrocinada, avalada, autorizada ni respaldada por ninguna institución educativa u organización, incluyendo (sin limitarse a) la Universidad de la República (UdelaR) y la Facultad de Ingeniería (FING), ni por cátedras, docentes, unidades académicas o dependencias administrativas.</p>
                     <p>Cualquier referencia a nombres, siglas, materias, planes de estudio, marcas o instituciones se utiliza únicamente con fines descriptivos e informativos, y no implica relación institucional, aprobación ni carácter oficial.</p>
                     <p>El software y el contenido asociado se proporcionan "tal cual" (AS IS), sin garantías de ningún tipo. El uso del proyecto es bajo su propia responsabilidad.</p>
                     <p>Al continuar, usted reconoce y acepta estos términos, y que cualquier interpretación de oficialidad es incorrecta.</p>
@@ -801,7 +1158,7 @@
         <header class="header">
             <div class="logo">
                 <i class="fas fa-users logo-icon"></i>
-                Fingcomms
+                NexoComms
             </div>
             <div class="header-actions">
                 <a href="https://github.com/LibrecourseUY/fingcomms" target="_blank" class="icon-link" title="GitHub">
@@ -846,10 +1203,38 @@
                 </div>
             </div>
 
-            <div v-if="!loading">
+            <div class="tag-filters" v-if="tags.length > 0">
+                <button 
+                    v-for="(tag, i) in tags" 
+                    :key="tag.id"
+                    class="tag-chip"
+                    :class="{ active: selectedTag === tag.name }"
+                    :style="{ animationDelay: `${0.05 * i}s` }"
+                    @click="toggleTag(tag.name)"
+                >
+                    {{ tag.name }}
+                </button>
+            </div>
+
+            <div class="loading" v-if="loading">
+                <div class="groups-grid cols-4">
+                    <div class="skeleton-card" v-for="n in 8" :key="n"
+                         :style="{ animationDelay: `${0.04 * n}s` }">
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div :key="`g-${selectedTag}-${searchQuery}`" v-if="!loading">
+            <div class="search-results-count" v-if="(searchQuery || selectedTag) && filteredGroups.length > 0">
+                {{ filteredGroups.length }} resultado{{ filteredGroups.length !== 1 ? 's' : '' }}
+            </div>
+
             <div class="groups-grid" v-for="(row, index) in groupRows" :key="index" :class="'cols-' + row.cols">
                 <div class="group-card" v-for="(group, i) in row.items" :key="group.id"
-                     :style="{ animationDelay: `${0.06 * (i + 1) + 0.1 * index}s` }">
+                     :style="{ animationDelay: `${0.04 * (i + 1 + index * 4)}s` }">
                 <div class="card-content">
                     <h3 class="group-name">
                         <span class="pinned-badge" v-if="group.pinned" aria-label="Grupo fijado">
@@ -858,6 +1243,9 @@
                         {{ group.name }}
                     </h3>
                     <p class="group-description">{{ group.description }}</p>
+                    <div class="group-tags" v-if="group.tags && group.tags.length">
+                        <span class="group-tag-badge" v-for="tag in group.tags" :key="tag.id">{{ tag.name }}</span>
+                    </div>
                 </div>
                 <div class="join-btn-wrapper">
                     <a :href="group.url" target="_blank" class="join-btn" v-if="group.url"
@@ -872,19 +1260,12 @@
             </div>
             </div>
 
-            <div class="search-results-count" v-if="searchQuery && !loading && filteredGroups.length > 0">
-                {{ filteredGroups.length }} resultado{{ filteredGroups.length !== 1 ? 's' : '' }}
-            </div>
-
-            <div class="loading" v-if="loading">
-                <i class="fas fa-spinner fa-pulse"></i> Cargando grupos...
-            </div>
-
-            <div class="no-results" v-if="!loading && filteredGroups.length === 0">
+            <div class="no-results" v-if="filteredGroups.length === 0">
                 <div class="no-results-icon"><i class="fas fa-search"></i></div>
                 <p v-if="searchQuery">No hay grupos que coincidan con "{{ searchQuery }}"</p>
-                <p v-else>Aún no hay grupos en Fingcomms</p>
-                <p class="no-results-suggestion" v-if="searchQuery">Intenta con otro término de búsqueda</p>
+                <p v-else-if="selectedTag">No hay grupos con el tag "{{ selectedTag }}"</p>
+                <p v-else>Aún no hay grupos en NexoComms</p>
+                <p class="no-results-suggestion" v-if="searchQuery || selectedTag">Intenta con otro filtro</p>
                 <p class="no-results-suggestion" v-else>¿Eres administrador? Crea el primer grupo desde el panel</p>
             </div>
         </main>
@@ -906,6 +1287,8 @@
                 const groups = ref([]);
                 const importantLinks = ref([]);
                 const searchQuery = ref('');
+                const tags = ref([]);
+                const selectedTag = ref('');
                 const loading = ref(true);
                 const showModal = ref(false);
                 const modalMode = ref('login');
@@ -914,7 +1297,7 @@
                 const loginError = ref('');
                 const lockoutRemaining = ref(false);
                 const lockoutMinutes = ref(0);
-                const showDisclaimer = ref(!localStorage.getItem('fingcomms_terms_accepted'));
+                const showDisclaimer = ref(!localStorage.getItem('nexocomms_terms_accepted'));
                 const showToast = ref(false);
                 const toastMessage = ref('');
                 const toastFading = ref(false);
@@ -930,10 +1313,12 @@
                 const fetchGroups = async () => {
                     loading.value = true;
                     try {
-                        const url = searchQuery.value 
-                            ? apiUrl(`/api/groups?q=${encodeURIComponent(searchQuery.value)}`)
-                            : apiUrl('/api/groups');
-                        const response = await fetch(url);
+                        let url = '/api/groups';
+                        const params = [];
+                        if (searchQuery.value) params.push(`q=${encodeURIComponent(searchQuery.value)}`);
+                        if (selectedTag.value) params.push(`tag=${encodeURIComponent(selectedTag.value)}`);
+                        if (params.length) url += '?' + params.join('&');
+                        const response = await fetch(apiUrl(url));
                         groups.value = await response.json();
                     } catch (error) {
                         console.error('Error fetching groups:', error);
@@ -979,6 +1364,20 @@
 
                 const clearSearch = () => {
                     searchQuery.value = '';
+                    fetchGroups();
+                };
+
+                const fetchTags = async () => {
+                    try {
+                        const response = await fetch(apiUrl('/api/tags'));
+                        tags.value = await response.json();
+                    } catch (error) {
+                        console.error('Error fetching tags:', error);
+                    }
+                };
+
+                const toggleTag = (tagName) => {
+                    selectedTag.value = selectedTag.value === tagName ? '' : tagName;
                     fetchGroups();
                 };
 
@@ -1082,7 +1481,7 @@
                 });
 
                 const acceptDisclaimer = () => {
-                    localStorage.setItem('fingcomms_terms_accepted', 'true');
+                    localStorage.setItem('nexocomms_terms_accepted', 'true');
                     showDisclaimer.value = false;
                 };
 
@@ -1217,6 +1616,7 @@
                 onMounted(() => {
                     fetchGroups();
                     fetchImportantLinks();
+                    fetchTags();
                     trackView();
                 });
 
@@ -1234,6 +1634,8 @@
                     groups,
                     importantLinks,
                     searchQuery,
+                    tags,
+                    selectedTag,
                     loading,
                     filteredGroups,
                     filteredImportantLinks,
@@ -1255,6 +1657,8 @@
                     toastType,
                     debounceSearch,
                     clearSearch,
+                    fetchTags,
+                    toggleTag,
                     joinGroup,
                     openCreateModal,
                     openManageModal,
