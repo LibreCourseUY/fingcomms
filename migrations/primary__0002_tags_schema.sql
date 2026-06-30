@@ -12,11 +12,15 @@ CREATE TABLE IF NOT EXISTS group_tags (
     PRIMARY KEY (group_id, tag_id)
 )
 
-INSERT INTO tags (name, created_at) VALUES ('Mates', CURRENT_TIMESTAMP)
-INSERT INTO tags (name, created_at) VALUES ('Comp', CURRENT_TIMESTAMP)
-INSERT INTO tags (name, created_at) VALUES ('Ingeniería', CURRENT_TIMESTAMP)
-INSERT INTO tags (name, created_at) VALUES ('Ocio', CURRENT_TIMESTAMP)
-INSERT INTO tags (name, created_at) VALUES ('Social', CURRENT_TIMESTAMP)
+INSERT INTO tags (id, name, created_at) VALUES (1, 'Mates', CURRENT_TIMESTAMP)
+
+INSERT INTO tags (id, name, created_at) VALUES (2, 'Comp', CURRENT_TIMESTAMP)
+
+INSERT INTO tags (id, name, created_at) VALUES (3, 'Ingeniería', CURRENT_TIMESTAMP)
+
+INSERT INTO tags (id, name, created_at) VALUES (4, 'Ocio', CURRENT_TIMESTAMP)
+
+INSERT INTO tags (id, name, created_at) VALUES (5, 'Social', CURRENT_TIMESTAMP)
 
 -- rollback
 

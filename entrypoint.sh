@@ -2,6 +2,7 @@
 set -e
 
 # Run migrations
+export DBWARDEN_CONFIG_MODULE=database
 dbwarden migrate --verbose
 
 # Start application

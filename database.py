@@ -30,20 +30,15 @@ else:
     DATABASE_URL = _db_url if _db_url else "sqlite+aiosqlite:///./groups.db"
     _sync_db_url = DATABASE_URL.replace("sqlite+aiosqlite:///", "sqlite:///", 1)
 
-try:
-    from dbwarden import database_config as _old_db_config
+from dbwarden import database_config
 
-    _old_db_config(
-        database_name="primary",
-        default=True,
-        database_type="postgresql" if ENVIRONMENT == "PROD" else "sqlite",
-        database_url_sync=_sync_db_url,
-        dev_database_type="sqlite",
-        dev_database_url="sqlite:///./groups.db",
-        migrations_dir="migrations",
-    )
-except (ImportError, AttributeError):
-    pass
+database_config(
+    database_name="primary",
+    default=True,
+    database_type="postgresql" if ENVIRONMENT == "PROD" else "sqlite",
+    database_url_sync=_sync_db_url,
+    migrations_dir="migrations",
+)
 
 engine = create_async_engine(DATABASE_URL, echo=False, future=True)
 AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
